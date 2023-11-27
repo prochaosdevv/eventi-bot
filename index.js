@@ -14,11 +14,12 @@ app.use("/bot" , botRotues)
 
 
 setInterval(() => {
+  try{
 
   let config = {
     method: 'get',
     maxBodyLength: Infinity,
-    url: 'https://d2zrc5jha5uuzj.cloudfront.net/bot',
+    url: 'https://d3iz2ngqyjdzvf.cloudfront.net/bot',
     headers: { }
   };
   
@@ -30,7 +31,10 @@ setInterval(() => {
     console.log(error.stack);
     console.log(error.message);
   });
-  
+}
+ catch(e){
+  console.log(e);
+ }
   }, 600000);
   
 
