@@ -265,6 +265,9 @@ async function updateData(chatId, data) {
                 bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
             }
         }
+        else if (nextField[_currentField] == "final") {
+            sendFinal(chatId, _parseContent)
+        }
         else {
             bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
         }
