@@ -3,6 +3,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const mongoose = require('mongoose');
 const connectDatabase = require('./utils/dbConnection');
 connectDatabase();
+const axios = require('axios');
 
 const botRotues = require("./routes/botRoutes");
 
