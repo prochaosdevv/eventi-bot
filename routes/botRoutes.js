@@ -192,6 +192,8 @@ console.log(!uniqueid.includes(chatId + msg.message_id));
 
     })
 
+    res.send({status: "OK"})
+
 })
 
 // Utils Fnction
