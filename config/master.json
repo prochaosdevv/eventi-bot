@@ -1,0 +1,11 @@
+{
+    "chatId" : false,
+    "eventName" : false,
+    "eventDescription" : false,
+    "eventLocation": false,
+    "eventLink":false,
+    "eventDate":false,
+    "remindBefore": false,
+    "eventDateRemindInterval": false,
+    "currentField": false
+}
