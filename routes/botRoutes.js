@@ -25,9 +25,9 @@ const nextField = {
 }
 
 const REMINDER_TEXT = {
-    [SEVEN_DAY]: "7 days before launch",
+    [SEVEN_DAY]: "Seven days before launch",
     [ONE_DAY]: "One day before launch",
-    [ONE_HOUR]: "1 hour before launch"
+    [ONE_HOUR]: "One hour before launch"
 }
 
 const DATE_REMINDER_TEXT = { 
@@ -45,21 +45,26 @@ const eventChainMarkup = {
 };
 
 const eventLinkMsg = `Awesome! What is the website link of the project?`;
-const eventLinkMarkup = {
-    reply_markup:
-    {
-        "inline_keyboard": [
-            [
-                {
-                    text: "No Link",
-                    callback_data: "/nolink",
-
-                }
-            ]
-        ]
-    }, parse_mode: 'html'
-
+const  eventLinkMarkup = {
+    reply_markup: {}
 };
+// const eventLinkMarkup = {
+//     reply_markup:
+//     {
+//         "inline_keyboard": [
+//             [
+//                 {
+//                     text: "No Link",
+//                     callback_data: "/nolink",
+
+//                 }
+//             ]
+//         ]
+//     }, parse_mode: 'html'
+
+// };
+
+
 
 const eventTwitterMsg = `Please provide the twitter link of the project.`;
 const  eventTwitterMarkup = {
@@ -116,13 +121,13 @@ const eventDateRemindIntervalMarkup = {
         "inline_keyboard": [
             [
                 {
-                    text: "Every Day",
+                    text: DATE_REMINDER_TEXT[ONE_DAY],
                     callback_data: `reminderDate_${ONE_DAY}`,
                 }
             ],
             [
                 {
-                    text: "Every hour",
+                    text: DATE_REMINDER_TEXT[ONE_HOUR],
                     callback_data: `reminderDate_${ONE_HOUR}`,
                 }
             ]
@@ -298,19 +303,19 @@ function setRemindBefore(chatId,seconds){
     let _keybArray = [] ; 
     if(!_parseContent.remindBefore.includes(SEVEN_DAY)){
         _keybArray.push([{
-            text: "7 days before launch",
+            text: REMINDER_TEXT[SEVEN_DAY],
             callback_data: `remindBefore_${SEVEN_DAY}`,
         }])
     }
     if(!_parseContent.remindBefore.includes(ONE_DAY)){
         _keybArray.push([{
-            text: "One day before launch",
+            text: REMINDER_TEXT[ONE_DAY],
             callback_data: `remindBefore_${ONE_DAY}`,
         }])
     }
     if(!_parseContent.remindBefore.includes(ONE_HOUR)){
         _keybArray.push([{
-            text: "One hour before launch",
+            text: REMINDER_TEXT[ONE_HOUR],
             callback_data: `remindBefore_${ONE_HOUR}`,
         }])
     }
