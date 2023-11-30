@@ -320,7 +320,7 @@ function setRemindBefore(chatId,seconds){
         }])
     }
     _keybArray.push([{
-        text: "No",
+        text: "No, continue.",
         callback_data: `/continue_reminder`,
     }])
 
