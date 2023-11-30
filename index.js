@@ -19,13 +19,14 @@ setInterval(() => {
   let config = {
     method: 'get',
     maxBodyLength: Infinity,
-    url: 'https://d3iz2ngqyjdzvf.cloudfront.net/bot',
+    // url: 'https://d3iz2ngqyjdzvf.cloudfront.net/bot',
+    url: process.env.URL,
     headers: { }
   };
   
   axios.request(config)
   .then((response) => {
-    console.log(JSON.stringify(response.data));
+    // console.log(JSON.stringify(response.data));
   })
   .catch((error) => {
     console.log(error.stack);
@@ -35,7 +36,7 @@ setInterval(() => {
  catch(e){
   console.log(e);
  }
-  }, 30000);
+  }, 5000);
   
 
 

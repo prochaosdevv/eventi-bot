@@ -1,11 +1,13 @@
 {
     "chatId" : false,
+    "requestId" : false,
     "eventName" : false,
-    "eventDescription" : false,
-    "eventLocation": false,
+    "eventChain" : false,
     "eventLink":false,
+    "eventTwitter" : false,
+    "communityLink": false,
     "eventDate":false,
     "remindBefore": false,
     "eventDateRemindInterval": false,
-    "currentField": false
+    "currentField": false        
 }
