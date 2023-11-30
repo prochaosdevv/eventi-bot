@@ -18,8 +18,7 @@ setInterval(() => {
     console.log("here");
   let config = {
     method: 'get',
-    maxBodyLength: Infinity,
-    // url: 'https://d3iz2ngqyjdzvf.cloudfront.net/bot',
+    maxBodyLength: Infinity,    
     url: process.env.URL,
     headers: { }
   };

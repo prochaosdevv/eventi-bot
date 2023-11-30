@@ -91,19 +91,19 @@ const remindBeforeMsgMarkup = {
         "inline_keyboard": [
             [
                 {
-                    text: "7 days before launch",
+                    text: REMINDER_TEXT[SEVEN_DAY],
                     callback_data: `remindBefore_${SEVEN_DAY}`,
                 }
             ],
             [
                 {
-                    text: "1 day before launch",
+                    text: REMINDER_TEXT[ONE_DAY],
                     callback_data: `remindBefore_${ONE_DAY}`,
                 }
             ],
             [
                 {
-                    text: "1 hour before launch",
+                    text: REMINDER_TEXT[ONE_HOUR],
                     callback_data: `remindBefore_${ONE_HOUR}`,
                 }
             ]
@@ -284,9 +284,10 @@ function setRemindBefore(chatId,seconds){
     // console.log(seconds);
     _parseContent.remindBefore = _parseContent.remindBefore ? [seconds , ..._parseContent.remindBefore] : [seconds];
     console.log(_parseContent.remindBefore);
-        if(_parseContent.remindBefore.includes(SEVEN_DAY) && _parseContent.remindBefore.includes(ONE_DAY) && _parseContent.remindBefore.includes(ONE_HOUR)){
-            _parseContent.currentField =  nextField[_parseContent.currentField];
-            }       
+        // if(_parseContent.remindBefore.includes(SEVEN_DAY) && _parseContent.remindBefore.includes(ONE_DAY) && _parseContent.remindBefore.includes(ONE_HOUR)){
+        //     _parseContent.currentField =  nextField[_parseContent.currentField];
+             
+        //     }       
     // console.log(_parseContent); 
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.writeFileSync(destination, JSON.stringify(_parseContent));
@@ -326,7 +327,9 @@ function setRemindBefore(chatId,seconds){
     }); 
     return;
 }
-    bot.sendMessage(chatId, nextMsg[_parseContent.currentField],nextMmarkup[_parseContent.currentField]); 
+
+moveForward(chatId)
+    // bot.sendMessage(chatId, nextMsg[_parseContent.currentField],nextMmarkup[_parseContent.currentField]); 
 }
 
 function setReminderDateInterval(chatId,seconds){
