@@ -8,14 +8,27 @@ const fs = require('fs');
 const path = require('path');
 const { SEVEN_DAY, ONE_DAY, ONE_HOUR } = require('../config/constants');
 const { log } = require('console');
+const Calendar = require('telegram-inline-calendar');
+
+const calendar = new Calendar(bot, {
+    date_format: 'DD-MM-YYYY',
+    language: 'en'
+});
+
+
 
 var uniqueid = [];
 const sourceFilePath = path.join(__dirname, '../config/master.json');
+ 
+const { Extra, Markup } = require('telegraf');
+
+// const botCal = new Telegraf(token);
 
 
 const nextField = {
     "eventName": "eventChain",
-    "eventChain": "eventLink",
+    "eventChain": "eventPad",
+    "eventPad": "eventLink",
     "eventLink": "eventTwitter",
     "eventTwitter": "communityLink",
     "communityLink": "eventDate",
@@ -35,51 +48,83 @@ const DATE_REMINDER_TEXT = {
     [ONE_HOUR]: "Every Hour"
 }
 
+ 
 const eventNameMsg = `Excellent! To begin, kindly share the name of the project for which you'd like to set the reminder.`;
 const eventNameMarkup = {
     reply_markup: {}
 };
+
+const eventPadMsg = `Where is it launching (e.g. Uniswap, Camelot, GemPad, etc)`;
+const eventPadMarkup = {
+    reply_markup: {}
+};
+
+
 const eventChainMsg = `Great! What chain is it on ?`;
 const eventChainMarkup = {
     reply_markup: {}
 };
 
 const eventLinkMsg = `Awesome! What is the website link of the project?`;
-const  eventLinkMarkup = {
-    reply_markup: {}
-};
-// const eventLinkMarkup = {
-//     reply_markup:
-//     {
-//         "inline_keyboard": [
-//             [
-//                 {
-//                     text: "No Link",
-//                     callback_data: "/nolink",
-
-//                 }
-//             ]
-//         ]
-//     }, parse_mode: 'html'
-
+// const  eventLinkMarkup = {
+//     reply_markup: {}
 // };
+const eventLinkMarkup = {
+    reply_markup:
+    {
+        "inline_keyboard": [
+            [
+                {
+                    text: "No Link",
+                    callback_data: "/nolink",
+
+                }
+            ]
+        ]
+    }, parse_mode: 'html'
+
+};
 
 
 
 const eventTwitterMsg = `Please provide the twitter link of the project.`;
 const  eventTwitterMarkup = {
-    reply_markup: {}
+    reply_markup:
+    {
+        "inline_keyboard": [
+            [
+                {
+                    text: "No Link",
+                    callback_data: "/nolink",
+
+                }
+            ]
+        ]
+    }, parse_mode: 'html'
+
 };
 
 const communityLinkMsg = `Great! Please provide the telegram or discord link of the project.`;
 const communityLinkMarkup = {
-    reply_markup: {}
+    reply_markup:
+    {
+        "inline_keyboard": [
+            [
+                {
+                    text: "No Link",
+                    callback_data: "/nolink",
+
+                }
+            ]
+        ]
+    }, parse_mode: 'html'
+
 };
 
-const eventDateMsg = `Great! When is this event happening?`;
+const eventDateMsg = `Great! When is this event happening? Please enter a date (MM/DD/YYYY):`;
 const eventDateMarkup = {
     "reply_markup": {
-        "inline_keyboard": [
+        "inline_keyboard": [        
             [
                 {
                     text: "This event doesn't have any date yet.",
@@ -90,7 +135,7 @@ const eventDateMarkup = {
         ]
     }, parse_mode: 'html'
 };
-const remindBeforeMsg = `Nice! When should I remind before the event?`;
+const remindBeforeMsg = `Nice, When should I remind you before then event?`;
 const remindBeforeMsgMarkup = {
     "reply_markup": {
         "inline_keyboard": [
@@ -115,29 +160,33 @@ const remindBeforeMsgMarkup = {
         ]
     }, parse_mode: 'html'
 };
-const eventDateRemindIntervalMsg = `Oh! You missed the date you want to add, how often should we remind you to set the date?`;
+const eventDateRemindIntervalMsg = `Oh! You missed the date. How often do you want to be reminded to enter a date for this launch? (answer in amount of days (e.g. “2” for every 2 days)`;
 const eventDateRemindIntervalMarkup = {
-    "reply_markup": {
-        "inline_keyboard": [
-            [
-                {
-                    text: DATE_REMINDER_TEXT[ONE_DAY],
-                    callback_data: `reminderDate_${ONE_DAY}`,
-                }
-            ],
-            [
-                {
-                    text: DATE_REMINDER_TEXT[ONE_HOUR],
-                    callback_data: `reminderDate_${ONE_HOUR}`,
-                }
-            ]
-        ]
-    }, parse_mode: 'html'
-};
+        reply_markup: {}
+    };
+//      {
+//     "reply_markup": {
+//         "inline_keyboard": [
+//             [
+//                 {
+//                     text: DATE_REMINDER_TEXT[ONE_DAY],
+//                     callback_data: `reminderDate_${ONE_DAY}`,
+//                 }
+//             ],
+//             [
+//                 {
+//                     text: DATE_REMINDER_TEXT[ONE_HOUR],
+//                     callback_data: `reminderDate_${ONE_HOUR}`,
+//                 }
+//             ]
+//         ]
+//     }, parse_mode: 'html'
+// };
 
 const nextMsg = {
     "eventName": eventChainMsg,
-    "eventChain": eventLinkMsg,
+    "eventChain": eventPadMsg,
+    "eventPad": eventLinkMsg,
     "eventLink": eventTwitterMsg,
     "eventTwitter": communityLinkMsg,
     "communityLink": eventDateMsg,
@@ -148,7 +197,8 @@ const nextMsg = {
 
 const nextMmarkup = {
     "eventName": eventChainMarkup,
-    "eventChain": eventLinkMarkup,
+    "eventChain": eventChainMarkup,
+    "eventPad": eventLinkMarkup,
     "eventLink": eventTwitterMarkup,
     "eventTwitter": communityLinkMarkup,
     "communityLink": eventDateMarkup,
@@ -158,7 +208,7 @@ const nextMmarkup = {
 }
 
 botRotues.get('/', async (req, res) => {
-    console.log("request received");
+    // console.log("request received");
     bot.onText(/\/start/, async (msg) => {
         const chatId = msg.chat.id;
          
@@ -205,7 +255,6 @@ botRotues.get('/', async (req, res) => {
                 setreminder(chatId)
             }
             if (callbackQuery.data == "/nolink") {
-                moveForward(chatId); 
                 bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
                     inline_keyboard: [[]]
                 })
@@ -213,10 +262,13 @@ botRotues.get('/', async (req, res) => {
                         chat_id: chatId,
                         message_id: callbackQuery.message.message_id
                     })
+                    // sendNextMsg(chatId)
+                moveForward(chatId , callbackQuery.message); 
 
             }
-
+            
             if(callbackQuery.data == "/continue_reminder"){
+                
                 moveForward(chatId); 
 
             }
@@ -265,19 +317,47 @@ botRotues.get('/', async (req, res) => {
     res.send({status: "OK"})
 
 })
+ 
+// function sendNextMsg(chatId) {
+//     const destination = path.join(__dirname, `../chats/${chatId}.json`);
+//     const content = fs.readFileSync(destination, 'utf-8');
+//     let _parseContent = JSON.parse(content)
+//     let _currentField  = _parseContent.currentField ;  
+//     _parseContent.currentField = nextField[_currentField] ;
+//     // console.log(_parseContent);
+//     fs.mkdirSync(path.dirname(destination), { recursive: true });
+//     fs.writeFileSync(destination, JSON.stringify(_parseContent));
+//     bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
 
+// }
 // Utils Fnction
-function moveForward(chatId) {
+function moveForward(chatId,msg=null) {
     const destination = path.join(__dirname, `../chats/${chatId}.json`);
     const content = fs.readFileSync(destination, 'utf-8');
     let _parseContent = JSON.parse(content)
     let _currentField  = _parseContent.currentField ; 
-    _parseContent.currentField = nextField[_currentField];
     // console.log(_parseContent);
+  
+
+    if (nextField[_currentField] == "eventDateRemindInterval") {
+        if (_parseContent.eventDate) {
+            sendFinal(chatId, _parseContent);
+            return;
+        }
+        // else {
+        //     _parseContent.currentField = nextField[_currentField];
+        //     bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
+        // }
+    }
+   
+    // else{
+        _parseContent.currentField = nextField[_currentField];
+        bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
+    // }
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.writeFileSync(destination, JSON.stringify(_parseContent));
 
-    bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
+     
 
 }
 
@@ -325,7 +405,7 @@ function setRemindBefore(chatId,seconds){
     }])
 
     console.log(_keybArray);
-    bot.sendMessage(chatId, "Great! Do you like to add more reminder?",{
+    bot.sendMessage(chatId, "Great! Would you like to add another reminder?",{
         "reply_markup": {
             "inline_keyboard": _keybArray
         }, parse_mode: 'html'
@@ -369,7 +449,29 @@ async function updateData(chatId, data) {
         sendFinal(chatId, _parseContent)
     }
     else {
-        _parseContent[_currentField] = data;
+        if(_currentField  == "eventDateRemindInterval"){
+            _parseContent[_currentField] = data*86400000;
+        }
+        else{
+            if(_currentField == "eventLink" ||_currentField == "eventTwitter" || _currentField == "communityLink"){
+                if(!isLinkValid(data)){
+                    bot.sendMessage(chatId, "The link you shared is not valid, please share a valid link.(e.g. “https://google.com”)");                     
+                    return;
+                }
+            }
+
+            if(_currentField == "eventDate"){
+                let _date = new Date(data) ;
+                let _cdate = new Date() ;
+                console.log(_date);
+                if(_date ==  "Invalid Date"  || _date < _cdate){
+                    bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. MM/DD/YYYY)");                     
+                    return;
+                }
+                data = _date.toDateString() ;
+            }
+            _parseContent[_currentField] = data;
+        }
         // console.log(_currentField);
         // nextField[_currentField]
         if (nextField[_currentField] == "eventDateRemindInterval") {
@@ -400,6 +502,14 @@ async function updateData(chatId, data) {
             sendFinal(chatId, _parseContent)
         }
         else {
+            // if(nextField[_currentField] == "eventDate"){
+            //     botCal.command('setdate', (ctx) => {
+            //         ctx.reply('Please select a date:', Markup.inlineKeyboard([
+            //           Markup.calendarButton('📅', 'calendar'),
+            //         ]).extra());
+            //       });
+            //       return
+            //     }
             bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
         }
 
@@ -415,34 +525,42 @@ function sendFinal(chatId, _parseContent) {
     let text = `Great!! You just completed the event details. Please cofirm below \n\n` ;
     text += `Project Name: ${_parseContent.eventName}\n`
     text += `Project Chain: ${_parseContent.eventChain}\n`
+    text += `Launchpad: ${_parseContent.eventPad}\n`
     text += `Event Date: ${_parseContent.eventDate ? _parseContent.eventDate : `NA`}\n`
     text += `Reminder: ${_reminder.join(',')}\n`
-    text += `${!_parseContent.eventDate ? `Event Date Reminder: ${DATE_REMINDER_TEXT[_parseContent.eventDateRemindInterval]}` : ``}`;
-    let communityText = '👥Discord' ;
+    text += `${!_parseContent.eventDate ? `Event Date Reminder: Every ${_parseContent.eventDateRemindInterval/ONE_DAY} days` : ``}`;
+    
+    let linksMarkup = [] ;
+    if(_parseContent.eventLink){
+        linksMarkup.push({
+                text: "💻Website",
+                url: _parseContent.eventLink,
+            });
+        }
+    if(_parseContent.eventTwitter){
+        linksMarkup.push({
+                text: "🐦Twitter",
+                url: _parseContent.eventTwitter
+            })
+        }
+    if(_parseContent.communityLink){
+        let communityText = '👥Discord' ;
     let _communityLink = _parseContent.communityLink.toLowerCase() ; 
     if(_communityLink.includes("t.me") || _communityLink.includes("telegram") ){
         communityText = '👥Telegram ' ;
     }
+        linksMarkup.push({
+                text: communityText,                    
+                url: _parseContent.communityLink
+
+            })
+        }
+           
     const _markup = {
     reply_markup:
     {
         "inline_keyboard": [
-            [
-                {
-                    text: "💻Website",
-                    url: _parseContent.eventLink,
-                },
-                {
-                    text: "🐦Twitter",
-                    url: _parseContent.eventTwitter
-                },
-                {
-                    text: communityText,                    
-                    url: _parseContent.communityLink
-
-                }
-                
-            ],
+            linksMarkup,
             [
                 {
                     text: "✅ Confirm",                    
@@ -492,5 +610,14 @@ function generateRandomString(length) {
 
     return result;
 }
+
+
+function isLinkValid(link) {
+    // Regular expression for a basic URL validation
+    var urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w.-]*)*\/?$/;
+  
+    // Test if the link matches the pattern
+    return urlPattern.test(link);
+  }
 
 module.exports = botRotues; // Export the router

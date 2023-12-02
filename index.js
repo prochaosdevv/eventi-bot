@@ -15,7 +15,7 @@ app.use("/bot" , botRotues)
 
 setInterval(() => {
   try{
-    console.log("here");
+    // console.log("here");
   let config = {
     method: 'get',
     maxBodyLength: Infinity,    

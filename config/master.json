@@ -2,6 +2,7 @@
     "chatId" : false,
     "requestId" : false,
     "eventName" : false,
+    "eventPad" : false,
     "eventChain" : false,
     "eventLink":false,
     "eventTwitter" : false,
