@@ -38,7 +38,7 @@ const requestSchema = new mongoose.Schema({
         default: false,
     },
     remindBefore: {
-        type: String,
+        type: [],
         default: false,
     },
     eventDateRemindInterval: {

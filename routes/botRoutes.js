@@ -1,9 +1,9 @@
 const express = require('express');
 const botRotues = express.Router();
-// const fs = require('fs')
-const fs = require('fs').promises; 
+const fs = require('fs')
+// const fs = require('fs').promises; 
 const util = require('util');
-const fse = require('fs-extra');
+// const fse = require('fs-extra');
 const TelegramBot = require('node-telegram-bot-api');
 const RequestModel = require('../models/requestsModel');
 const token = process.env.TG_BOT_SECRET;
@@ -37,8 +37,8 @@ const nextField = {
     "eventLink": "eventTwitter",
     "eventTwitter": "communityLink",
     "communityLink": "eventDate",
-    "eventDate": "eventTime",
-    "eventTime": "remindBefore", 
+    "eventDate": "remindBefore",
+    // "eventTime": "remindBefore", 
     "remindBefore": "eventDateRemindInterval",
     "eventDateRemindInterval": "final",
 }
@@ -127,7 +127,7 @@ const communityLinkMarkup = {
 
 };
 
-const eventDateMsg = `Great! When is this event happening? Please enter a date (MM/DD/YYYY):`;
+const eventDateMsg = `Great! When is this event happening? Please enter a date and time (MM/DD/YYYY HH:MM) EST:`;
 const eventDateMarkup = {
     "reply_markup": {
         "inline_keyboard": [
@@ -144,17 +144,7 @@ const eventDateMarkup = {
 //
 const eventTimeMsg = `Great! At what time is this event happening? Please enter the time (e.g., 10:00 AM EST):`;
 const eventTimeMarkup = {
-    reply_markup: {
-        "inline_keyboard": [
-            [
-                {
-                    text: "No Specific Time",
-                    callback_data: "/notime",
-                }
-            ]
-        ]
-    },
-    parse_mode: 'html'
+    reply_markup: {}
 };
 
 //
@@ -213,8 +203,8 @@ const nextMsg = {
     "eventLink": eventTwitterMsg,
     "eventTwitter": communityLinkMsg,
     "communityLink": eventDateMsg,
-    "eventDate": eventTimeMsg,
-    "eventTime": remindBeforeMsg,
+    "eventDate": remindBeforeMsg,
+    // "eventTime": remindBeforeMsg,
     "remindBefore": eventDateRemindIntervalMsg,
     "eventDateRemindInterval": null
 }
@@ -226,8 +216,8 @@ const nextMmarkup = {
     "eventLink": eventTwitterMarkup,
     "eventTwitter": communityLinkMarkup,
     "communityLink": eventDateMarkup,
-    "eventDate": eventTimeMarkup,
-    "eventTime": remindBeforeMsgMarkup,
+    "eventDate": remindBeforeMsgMarkup,
+    // "eventTime": remindBeforeMsgMarkup,
     "remindBefore": eventDateRemindIntervalMarkup,
     "eventDateRemindInterval": null
 }
@@ -275,6 +265,7 @@ botRotues.get('/', async (req, res) => {
 
         const chatId = callbackQuery.message.chat.id;
         if (!uniqueid.includes(chatId + callbackQuery.message.message_id)) {
+            uniqueid.push(chatId + callbackQuery.message.message_id)
 
             if (callbackQuery.data == "/setreminder") {
                 setreminder(chatId)
@@ -320,8 +311,60 @@ botRotues.get('/', async (req, res) => {
                 setReminderDateInterval(chatId, callbackQuery.data.replace("reminderDate_", ""))
             }
 
+            if (callbackQuery.data.includes("confirm")) {
+            try {
+                const userEvents = await store_data_in_database(chatId);
+                if(userEvents){
+                    console.log('User Events:', userEvents);
+                    let linksMarkup = [];
+                    if (userEvents.eventLink) {
+                      linksMarkup.push({
+                         text: "💻Website",
+                         url: userEvents.eventLink,
+                      });
+                  }
+                  if (userEvents.eventTwitter) {
+                       linksMarkup.push({
+                          text: "🐦Twitter",
+                          url: userEvents.eventTwitter
+                       })
+                 }
+                 if (userEvents.communityLink) {
+                     let communityText = '👥Discord';
+                     let _communityLink = userEvents.communityLink.toLowerCase();
+                     if (_communityLink.includes("t.me") || _communityLink.includes("telegram")) {
+                         communityText = '👥Telegram ';
+                     }
+                     linksMarkup.push({
+                         text: communityText,
+                         url: userEvents.communityLink
+             
+                     })
+                 }
 
-            uniqueid.push(chatId + callbackQuery.message.message_id)
+                    bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                        inline_keyboard: [linksMarkup]
+                    })
+                        , {
+                            chat_id: chatId,
+                            message_id: callbackQuery.message.message_id
+                        })
+                    bot.sendMessage(chatId, 'Event Entry confirmed!');
+                    const destinationFilePath = path.join(__dirname, `../chats/${chatId}.json`);
+                    createChatFile(chatId, destinationFilePath, "stop");
+                }
+                else{
+                bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
+                }
+             
+
+
+              } catch (error) {
+                console.error('Error:', error);
+                bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
+              }
+            }
+
         }
     })
 
@@ -474,6 +517,27 @@ async function updateData(chatId, data) {
     if (_currentField == "final") {
         sendFinal(chatId, _parseContent)
     }
+    else if (_currentField == "stop") {
+        bot.sendMessage(chatId, 'Welcome to the Event Reminder Wizard! ✨ To conjure up a reminder, use the magic words: /setreminder. Let the enchantment begin!', {
+            "reply_markup": {
+                "inline_keyboard": [
+                    [
+                        {
+                            text: "Set Reminder",
+                            callback_data: "/setreminder",
+
+                        },
+                        {
+                            text: "Delete Reminder",
+                            callback_data: "/deletereminder",
+
+                        },
+                    ]
+                ]
+            }, parse_mode: 'html'
+        });
+
+    }
     else {
         if (_currentField == "eventDateRemindInterval") {
             _parseContent[_currentField] = data * 86400000;
@@ -494,7 +558,10 @@ async function updateData(chatId, data) {
                     bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. MM/DD/YYYY)");
                     return;
                 }
-                data = _date.toDateString();
+
+                data = (_date.getMonth()+1) +"/"+ _date.getFullYear()  +"/"+  _date.getFullYear()  + " " +(_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes()) ;
+                console.log(data);
+                // data = _date.toString();
             }
             _parseContent[_currentField] = data;
         }
@@ -579,8 +646,8 @@ function sendFinal(chatId, _parseContent) {
      text += `📃 Project Name: ${_parseContent.eventName}\n`;
      text += `🔗 Project Chain: ${capitalizeAllLetters(_parseContent.eventChain)}\n`;
      text += `🔁 Platform: ${capitalizeFirstLetter(_parseContent.eventPad)}\n`;
-     text += `🗓️ Event Date: ${_parseContent.eventDate ? _parseContent.eventDate : 'NA'}\n`;
-     text += `⏰ Event Time: ${_parseContent.eventTime ? _parseContent.eventTime : 'NA'}\n`;
+     text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${_parseContent.eventDate} EST` : 'NA'}\n`;
+    //  text += `⏰ Event Time: ${_parseContent.eventTime ? _parseContent.eventTime : 'NA'}\n`;
      text += _reminder.join('\n');
      text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
 
@@ -621,7 +688,7 @@ function sendFinal(chatId, _parseContent) {
                 [
                     {
                         text: "✅ Confirm",
-                        callback_data: `confirm_${_parseContent.requestId}`
+                        callback_data: `confirm`
 
                     }
                 ]
@@ -634,13 +701,13 @@ function sendFinal(chatId, _parseContent) {
     bot.sendMessage(chatId, text, _markup)
 }
 
-async function createChatFile(chatId, destination) {
+async function createChatFile(chatId, destination , startAt = null) {
 
     try {
         const content = fs.readFileSync(sourceFilePath, 'utf-8');
         let _parseContent = JSON.parse(content)
         _parseContent.chatId = chatId;
-        _parseContent.currentField = "eventName";
+        _parseContent.currentField = startAt || "eventName";
         _parseContent.requestId = generateRandomString(8);
 
         fs.mkdirSync(path.dirname(destination), { recursive: true });
@@ -679,14 +746,14 @@ function isLinkValid(link) {
 
 
 
-async function read_data(chatId) {
+async function read_data(chatId) { 
     const destination = path.join(__dirname, `../chats/${chatId}.json`);
-
+  
     try {
        
-        const content = await fs.readFile(destination, 'utf-8');
-        const parseContent = JSON.parse(content);
-        return parseContent;
+        const content = fs.readFileSync(destination, 'utf-8');
+        let _parseContent = JSON.parse(content);
+        return _parseContent;
     } catch (error) {
         console.error(`Error reading/parsing file for chatId ${chatId}: ${error.message}`);
         return null;
@@ -701,30 +768,34 @@ async function store_data_in_database(chatId) {
             await requestModelInstance.save();
 
             console.log('Data stored in the database:', userEvents);
+            return userEvents ; 
         } else {
             console.error(`Error reading data for chatId ${chatId}: Data is null or invalid.`);
+            return false ; 
+
         }
     } catch (error) {
         console.error(`Error storing data for chatId ${chatId}: ${error.message}`);
-        throw error;
+        return false ; 
+
     }
 }
 
 
 
-bot.onText(/\/confirm/, async (msg) => {
-    const chatId = msg.chat.id;
+// bot.onText(/\/confirm/, async (msg) => {
+//     const chatId = msg.chat.id;
   
-    try {
-      const userEvents = await store_data_in_database(chatId);
-      console.log('User Events:', userEvents);
+//     try {
+//       const userEvents = await store_data_in_database(chatId);
+//       console.log('User Events:', userEvents);
   
-      bot.sendMessage(chatId, 'User events confirmed!');
-    } catch (error) {
-      console.error('Error:', error);
-      bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
-    }
-  });
+//       bot.sendMessage(chatId, 'User events confirmed!');
+//     } catch (error) {
+//       console.error('Error:', error);
+//       bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
+//     }
+//   });
 
 
 async function fetchEventsFromDatabase(chatId) {
