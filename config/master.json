@@ -8,6 +8,7 @@
     "eventTwitter" : false,
     "communityLink": false,
     "eventDate":false,
+    "eventTime":false,
     "remindBefore": false,
     "eventDateRemindInterval": false,
     "currentField": false        
