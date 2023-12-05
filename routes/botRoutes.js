@@ -239,8 +239,8 @@ botRotues.get('/', async (req, res) => {
 
                             },
                             {
-                                text: "Delete Reminder",
-                                callback_data: "/deletereminder",
+                                text: "List Reminders",
+                                callback_data: "/listreminder",
 
                             },
                         ]
