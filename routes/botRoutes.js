@@ -908,7 +908,7 @@ async function showEvent(chatId , page ,update, callback_data = null){
             console.log(page);
             // console.log(event);
 
-            eventMsg += `Event ${page + 1} of ${userEvents.length}:\n\n`;
+            eventMsg += `Event #${page + 1} of ${userEvents.length}:\n\n`;
             eventMsg += `📃 Project Name: ${event.eventName}\n` +
                         `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
                         `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
@@ -960,7 +960,7 @@ async function showEvent(chatId , page ,update, callback_data = null){
                 linksMarkup,
                 [
                     { text: 'Edit Event', callback_data: `/edit_${event._id}` },
-                    { text: 'Delet Event', callback_data: `/delete_${event._id}` }
+                    { text: 'Delete Event', callback_data: `/delete_${event._id}` }
                 ], 
                 nav
             ],
