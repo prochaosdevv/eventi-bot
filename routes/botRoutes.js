@@ -365,6 +365,30 @@ botRotues.get('/', async (req, res) => {
                 }
             }
 
+            if (callbackQuery.data.startsWith('/edit_')) {
+                const eventIndex = parseInt(callbackQuery.data.split('_')[1]) - 1;
+                
+                bot.sendMessage(chatId, `You clicked the Edit button for event ${eventIndex + 1}`);
+            }  
+            
+            if (callbackQuery.data.includes('next_page_')) {
+                const nextPage = parseInt(callbackQuery.data.split('_')[2]) || 1;
+                console.log(nextPage);
+
+                // bot.sendMessage(chatId, `/listreminder ${nextPage}`);
+                await showEvent(chatId,nextPage,true,callbackQuery)
+            }
+
+            if (callbackQuery.data.includes('prev_page_')) {
+                const prevPage = parseInt(callbackQuery.data.split('_')[2]) || 1;
+                console.log(prevPage);
+
+                // bot.sendMessage(chatId, `/listreminder ${nextPage}`);
+                await showEvent(chatId,prevPage-1,true,callbackQuery)
+            }
+
+            
+
         }
     })
 
@@ -373,7 +397,7 @@ botRotues.get('/', async (req, res) => {
         const text = msg.text;
         if (!uniqueid.includes(chatId + msg.message_id)) {
 
-            if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate") {
+            if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder") {
                 updateData(chatId, text)
                 uniqueid.push(chatId + msg.message_id)
 
@@ -803,7 +827,7 @@ async function fetchEventsFromDatabase(chatId) {
   
         const userEvents = await RequestModel.find({ chatId: chatId });
         // const userEvents = await RequestModel.find({ chatId: chatId }).sort({ createdAt: -1 }).limit(1);
-        console.log("userEvents", userEvents)
+        // console.log("userEvents", userEvents)
         if (userEvents.length === 0) {
             return [];
         }
@@ -850,66 +874,119 @@ const EVENTS_PER_PAGE = 1;
 
 bot.onText(/\/listreminder/, async (msg) => {
     const chatId = msg.chat.id;
-    const page = parseInt(msg.text.split(' ')[1]) || 1;
+    const page = 0;
 
     try {
-        const userEvents = await fetchEventsFromDatabase(chatId);
-        const startIndex = (page - 1) * EVENTS_PER_PAGE;
-        const endIndex = startIndex + EVENTS_PER_PAGE;
-
-        let eventMsg = '';
-
-        if (startIndex < userEvents.length) {
-            for (let i = startIndex; i < Math.min(endIndex, userEvents.length); i++) {
-                const event = userEvents[i];
-
-                eventMsg += `Event ${i + 1}:\n\n`;
-                eventMsg += `📃 Project Name: ${event.eventName}\n` +
-                            `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
-                            `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
-                            `🔁 eventLink: ${(event.eventLink)}\n` +
-                            `🔁 eventTwitter: ${(event.eventTwitter)}\n` +
-                            `🔁 communityLink: ${(event.communityLink)}\n` +
-                            `🗓️ Event Date Time: ${event.eventDate ? `${event.eventDate} EST` : 'NA'}` +
-                            `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${formatMillisecondsToReminder(Number(reminder))}`).join('\n')}` +
-                            `${!event.eventDate ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
-            }
-
-            const keyboard = {
-                inline_keyboard: [
-                    [{ text: 'Edit Event', callback_data: `/edit_${startIndex + 1}` }],
-                    ...(endIndex < userEvents.length
-                        ? [[{ text: 'Next', callback_data: `/next_page ${page + 1}` }]]
-                        : []),
-                ],
-            };
-
-            bot.sendMessage(chatId, eventMsg, {
-                parse_mode: 'markdown',
-                reply_markup: keyboard,
-            });
-        } else {
-            bot.sendMessage(chatId, "You haven't created any events yet.");
-        }
-    } catch (error) {
+       await showEvent(chatId , page ,false)
+    } catch (error) { 
         console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
         bot.sendMessage(chatId, 'Error fetching events. Please try again later.');
     }
 });
 
-bot.on('callback_query', async (callbackQuery) => {
-    const chatId = callbackQuery.message.chat.id;
-    const data = callbackQuery.data;
 
-    if (data.startsWith('/edit_')) {
-        const eventIndex = parseInt(data.split('_')[1]) - 1;
+async function showEvent(chatId , page ,update, callback_data = null){
+    const userEvents = await fetchEventsFromDatabase(chatId);
+    // const startIndex = (page - 1) * EVENTS_PER_PAGE;
+    // const endIndex = startIndex + EVENTS_PER_PAGE;
+
+    let eventMsg = '';
+    if (userEvents.length > 0) {
+        // for (let i = startIndex; i < Math.min(endIndex, userEvents.length); i++) {
+            const event = userEvents[page];
+            console.log(page);
+            // console.log(event);
+
+            eventMsg += `Event ${page + 1} of ${userEvents.length}:\n\n`;
+            eventMsg += `📃 Project Name: ${event.eventName}\n` +
+                        `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
+                        `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
+                        `🗓️ Event Date Time: ${event.eventDate ? `${event.eventDate} EST` : 'NA'}` +
+                        `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
+                        `${!event.eventDate ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
+        // }
+
+        let linksMarkup = [];
+        if (event.eventLink) {
+            linksMarkup.push({
+                text: "💻Website",
+                url: event.eventLink,
+            });
+        }
+        if (event.eventTwitter) {
+            linksMarkup.push({
+                text: "🐦Twitter",
+                url: event.eventTwitter
+            })
+        }
+        if (event.communityLink) {
+            let communityText = '👥Discord';
+            let _communityLink = event.communityLink.toLowerCase();
+            if (_communityLink.includes("t.me") || _communityLink.includes("telegram")) {
+                communityText = '👥Telegram ';
+            }
+            linksMarkup.push({
+                text: communityText,
+                url: event.communityLink
+    
+            })
+        }
+
         
-        bot.sendMessage(chatId, `You clicked the Edit button for event ${eventIndex + 1}`);
-    } else if (data.startsWith('/next_page')) {
-        const nextPage = parseInt(data.split(' ')[1]) || 1;
-        bot.sendMessage(chatId, `/listreminder ${nextPage}`);
+        let nav = [] ;
+        if(userEvents.length > 1){
+            if(page > 0){
+                nav.push({ text: `Prev`, callback_data: `prev_page_${page}` })
+            }
+            if(page < userEvents.length - 1){
+                nav.push({ text: `Next`, callback_data: `next_page_${page + 1}` })
+
+            }
+        }
+        console.log(nav);
+        const keyboard = {
+            inline_keyboard: [
+                linksMarkup,
+                [
+                    { text: 'Edit Event', callback_data: `/edit_${event._id}` },
+                    { text: 'Delet Event', callback_data: `/delete_${event._id}` }
+                ], 
+                nav
+            ],
+        }; 
+        if(!update){
+            bot.sendMessage(chatId, eventMsg, {
+                parse_mode: 'markdown',
+                reply_markup: keyboard,
+            });    
+        }
+        else{
+            bot.deleteMessage(chatId, callback_data.message.message_id)
+            bot.sendMessage(chatId, eventMsg, {
+                parse_mode: 'markdown',
+                reply_markup: keyboard,
+            });    
+
+
+            // console.log(keyboard);
+            // bot.editMessageText(eventMsg,{chat_id: chatId, message_id: callback_data.message.message_id});
+            // // bot.edit(eventMsg,{chat_id: chatId});
+            // bot.editMessageReplyMarkup(JSON.stringify(keyboard)
+            //     , {
+            //         chat_id: chatId,
+            //         message_id: callback_data.message.message_id
+            //     })
+        }
+    } else {
+        bot.sendMessage(chatId, "You haven't created any events yet.");
     }
-});
+}
+// bot.on('callback_query', async (callbackQuery) => {
+//     const chatId = callbackQuery.message.chat.id;
+//     const data = callbackQuery.data;
+
+  
+// });
 
 
 module.exports = botRotues; // Export the router
