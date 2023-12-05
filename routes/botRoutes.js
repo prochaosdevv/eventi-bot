@@ -312,57 +312,57 @@ botRotues.get('/', async (req, res) => {
             }
 
             if (callbackQuery.data.includes("confirm")) {
-            try {
-                const userEvents = await store_data_in_database(chatId);
-                if(userEvents){
-                    console.log('User Events:', userEvents);
-                    let linksMarkup = [];
-                    if (userEvents.eventLink) {
-                      linksMarkup.push({
-                         text: "💻Website",
-                         url: userEvents.eventLink,
-                      });
-                  }
-                  if (userEvents.eventTwitter) {
-                       linksMarkup.push({
-                          text: "🐦Twitter",
-                          url: userEvents.eventTwitter
-                       })
-                 }
-                 if (userEvents.communityLink) {
-                     let communityText = '👥Discord';
-                     let _communityLink = userEvents.communityLink.toLowerCase();
-                     if (_communityLink.includes("t.me") || _communityLink.includes("telegram")) {
-                         communityText = '👥Telegram ';
-                     }
-                     linksMarkup.push({
-                         text: communityText,
-                         url: userEvents.communityLink
-             
-                     })
-                 }
+                try {
+                    const userEvents = await store_data_in_database(chatId);
+                    if (userEvents) {
+                        console.log('User Events:', userEvents);
+                        let linksMarkup = [];
+                        if (userEvents.eventLink) {
+                            linksMarkup.push({
+                                text: "💻Website",
+                                url: userEvents.eventLink,
+                            });
+                        }
+                        if (userEvents.eventTwitter) {
+                            linksMarkup.push({
+                                text: "🐦Twitter",
+                                url: userEvents.eventTwitter
+                            })
+                        }
+                        if (userEvents.communityLink) {
+                            let communityText = '👥Discord';
+                            let _communityLink = userEvents.communityLink.toLowerCase();
+                            if (_communityLink.includes("t.me") || _communityLink.includes("telegram")) {
+                                communityText = '👥Telegram ';
+                            }
+                            linksMarkup.push({
+                                text: communityText,
+                                url: userEvents.communityLink
 
-                    bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
-                        inline_keyboard: [linksMarkup]
-                    })
-                        , {
-                            chat_id: chatId,
-                            message_id: callbackQuery.message.message_id
+                            })
+                        }
+
+                        bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                            inline_keyboard: [linksMarkup]
                         })
-                    bot.sendMessage(chatId, 'Event Entry confirmed!');
-                    const destinationFilePath = path.join(__dirname, `../chats/${chatId}.json`);
-                    createChatFile(chatId, destinationFilePath, "stop");
-                }
-                else{
-                bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
-                }
-             
+                            , {
+                                chat_id: chatId,
+                                message_id: callbackQuery.message.message_id
+                            })
+                        bot.sendMessage(chatId, 'Event Entry confirmed!');
+                        const destinationFilePath = path.join(__dirname, `../chats/${chatId}.json`);
+                        createChatFile(chatId, destinationFilePath, "stop");
+                    }
+                    else {
+                        bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
+                    }
 
 
-              } catch (error) {
-                console.error('Error:', error);
-                bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
-              }
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
+                }
             }
 
         }
@@ -559,7 +559,7 @@ async function updateData(chatId, data) {
                     return;
                 }
 
-                data = (_date.getMonth()+1) +"/"+ _date.getFullYear()  +"/"+  _date.getFullYear()  + " " +(_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes()) ;
+                data = (_date.getMonth() + 1) + "/" + _date.getFullYear() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
                 console.log(data);
                 // data = _date.toString();
             }
@@ -621,51 +621,51 @@ function sendFinal(chatId, _parseContent) {
     // text +=`🗓️ Event Date:  ${_parseContent.eventDate ? _parseContent.eventDate : `NA`}\n`
     // text += `⏰ Reminder: ${_reminder.join(',')}\n`
     // text += `${!_parseContent.eventDate ? `Event Date Reminder: Every ${_parseContent.eventDateRemindInterval/ONE_DAY} days` : ``}`;
-    
-     const capitalizeFirstLetter = (str) => {
-         return str.charAt(0).toUpperCase() + str.slice(1);
-     };
 
-     const capitalizeAllLetters = (str) => {
+    const capitalizeFirstLetter = (str) => {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+
+    const capitalizeAllLetters = (str) => {
         return str.toUpperCase();
     }
-    
+
     if (Array.isArray(_parseContent.remindBefore)) {
-    //    console.log('_parseContent.remindBefore:', _parseContent.remindBefore); 
+        //    console.log('_parseContent.remindBefore:', _parseContent.remindBefore); 
 
-     _parseContent.remindBefore.forEach((v, i) => {
-         console.log(`Processing reminder #${i + 1}, value: ${v}`); 
-         _reminder.push(`⏰ Reminder #${i + 1}: ${REMINDER_TEXT[v]}`);
-       });
-      } else {
-       console.error('_parseContent.remindBefore is not an array');
-     }
+        _parseContent.remindBefore.forEach((v, i) => {
+            console.log(`Processing reminder #${i + 1}, value: ${v}`);
+            _reminder.push(`⏰ Reminder #${i + 1}: ${REMINDER_TEXT[v]}`);
+        });
+    } else {
+        console.error('_parseContent.remindBefore is not an array');
+    }
 
 
-     let text = `Great!! You just completed the event details. Please confirm below \n\n`;
-     text += `📃 Project Name: ${_parseContent.eventName}\n`;
-     text += `🔗 Project Chain: ${capitalizeAllLetters(_parseContent.eventChain)}\n`;
-     text += `🔁 Platform: ${capitalizeFirstLetter(_parseContent.eventPad)}\n`;
-     text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${_parseContent.eventDate} EST` : 'NA'}\n`;
+    let text = `Great!! You just completed the event details. Please confirm below \n\n`;
+    text += `📃 Project Name: ${_parseContent.eventName}\n`;
+    text += `🔗 Project Chain: ${capitalizeAllLetters(_parseContent.eventChain)}\n`;
+    text += `🔁 Platform: ${capitalizeFirstLetter(_parseContent.eventPad)}\n`;
+    text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${_parseContent.eventDate} EST` : 'NA'}\n`;
     //  text += `⏰ Event Time: ${_parseContent.eventTime ? _parseContent.eventTime : 'NA'}\n`;
-     text += _reminder.join('\n');
-     text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
+    text += _reminder.join('\n');
+    text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
 
 
     // console.log(text);
 
-       let linksMarkup = [];
-       if (_parseContent.eventLink) {
-         linksMarkup.push({
+    let linksMarkup = [];
+    if (_parseContent.eventLink) {
+        linksMarkup.push({
             text: "💻Website",
             url: _parseContent.eventLink,
-         });
-     }
-     if (_parseContent.eventTwitter) {
-          linksMarkup.push({
-             text: "🐦Twitter",
-             url: _parseContent.eventTwitter
-          })
+        });
+    }
+    if (_parseContent.eventTwitter) {
+        linksMarkup.push({
+            text: "🐦Twitter",
+            url: _parseContent.eventTwitter
+        })
     }
     if (_parseContent.communityLink) {
         let communityText = '👥Discord';
@@ -701,7 +701,7 @@ function sendFinal(chatId, _parseContent) {
     bot.sendMessage(chatId, text, _markup)
 }
 
-async function createChatFile(chatId, destination , startAt = null) {
+async function createChatFile(chatId, destination, startAt = null) {
 
     try {
         const content = fs.readFileSync(sourceFilePath, 'utf-8');
@@ -746,11 +746,11 @@ function isLinkValid(link) {
 
 
 
-async function read_data(chatId) { 
+async function read_data(chatId) {
     const destination = path.join(__dirname, `../chats/${chatId}.json`);
-  
+
     try {
-       
+
         const content = fs.readFileSync(destination, 'utf-8');
         let _parseContent = JSON.parse(content);
         return _parseContent;
@@ -768,15 +768,15 @@ async function store_data_in_database(chatId) {
             await requestModelInstance.save();
 
             console.log('Data stored in the database:', userEvents);
-            return userEvents ; 
+            return userEvents;
         } else {
             console.error(`Error reading data for chatId ${chatId}: Data is null or invalid.`);
-            return false ; 
+            return false;
 
         }
     } catch (error) {
         console.error(`Error storing data for chatId ${chatId}: ${error.message}`);
-        return false ; 
+        return false;
 
     }
 }
@@ -785,11 +785,11 @@ async function store_data_in_database(chatId) {
 
 // bot.onText(/\/confirm/, async (msg) => {
 //     const chatId = msg.chat.id;
-  
+
 //     try {
 //       const userEvents = await store_data_in_database(chatId);
 //       console.log('User Events:', userEvents);
-  
+
 //       bot.sendMessage(chatId, 'User events confirmed!');
 //     } catch (error) {
 //       console.error('Error:', error);
@@ -800,14 +800,13 @@ async function store_data_in_database(chatId) {
 
 async function fetchEventsFromDatabase(chatId) {
     try {
-       
-        const userEvents = await RequestModel.find({ chatId: chatId }).select('eventName');
-        console.log("userEvents",userEvents)
+  
+        const userEvents = await RequestModel.find({ chatId: chatId });
+        // const userEvents = await RequestModel.find({ chatId: chatId }).sort({ createdAt: -1 }).limit(1);
+        console.log("userEvents", userEvents)
         if (userEvents.length === 0) {
             return [];
         }
-
-       
         return userEvents;
     } catch (error) {
         console.error(`Error fetching events for chatId ${chatId}: ${error.message}`);
@@ -816,24 +815,101 @@ async function fetchEventsFromDatabase(chatId) {
 }
 
 
-bot.onText(/\/listevents/, async (msg) => {
+
+
+function capitalizeAllLetters(str) {
+    return str.toUpperCase();
+}
+
+function capitalizeFirstLetter(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
+
+//*********************************************************************************************** *///
+function formatMillisecondsToReminder(milliseconds) {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+        return ` ${hours} hour${hours > 1 ? 's' : ''} before the launch`;
+    } else if (minutes > 0) {
+        return `${minutes} minute${minutes > 1 ? 's' : ''} before the launch`;
+    } else {
+        return ` Less than a minute before the launch`;
+    }
+}
+
+
+
+
+
+const EVENTS_PER_PAGE = 1;
+
+bot.onText(/\/listreminder/, async (msg) => {
     const chatId = msg.chat.id;
+    const page = parseInt(msg.text.split(' ')[1]) || 1;
 
     try {
-       
         const userEvents = await fetchEventsFromDatabase(chatId);
+        const startIndex = (page - 1) * EVENTS_PER_PAGE;
+        const endIndex = startIndex + EVENTS_PER_PAGE;
 
-        const eventListMsg = userEvents.length > 0
-            ? `Here are the events you've created:\n\n${userEvents.join('\n')}`
-            : "You haven't created any events yet.";
+        let eventMsg = '';
 
-        bot.sendMessage(chatId, eventListMsg, { parse_mode: 'markdown' });
+        if (startIndex < userEvents.length) {
+            for (let i = startIndex; i < Math.min(endIndex, userEvents.length); i++) {
+                const event = userEvents[i];
+
+                eventMsg += `Event ${i + 1}:\n\n`;
+                eventMsg += `📃 Project Name: ${event.eventName}\n` +
+                            `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
+                            `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
+                            `🔁 eventLink: ${(event.eventLink)}\n` +
+                            `🔁 eventTwitter: ${(event.eventTwitter)}\n` +
+                            `🔁 communityLink: ${(event.communityLink)}\n` +
+                            `🗓️ Event Date Time: ${event.eventDate ? `${event.eventDate} EST` : 'NA'}` +
+                            `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${formatMillisecondsToReminder(Number(reminder))}`).join('\n')}` +
+                            `${!event.eventDate ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
+            }
+
+            const keyboard = {
+                inline_keyboard: [
+                    [{ text: 'Edit Event', callback_data: `/edit_${startIndex + 1}` }],
+                    ...(endIndex < userEvents.length
+                        ? [[{ text: 'Next', callback_data: `/next_page ${page + 1}` }]]
+                        : []),
+                ],
+            };
+
+            bot.sendMessage(chatId, eventMsg, {
+                parse_mode: 'markdown',
+                reply_markup: keyboard,
+            });
+        } else {
+            bot.sendMessage(chatId, "You haven't created any events yet.");
+        }
     } catch (error) {
-        console.error(`Error handling /listevents for chatId ${chatId}: ${error.message}`);
+        console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
         bot.sendMessage(chatId, 'Error fetching events. Please try again later.');
     }
 });
 
+bot.on('callback_query', async (callbackQuery) => {
+    const chatId = callbackQuery.message.chat.id;
+    const data = callbackQuery.data;
+
+    if (data.startsWith('/edit_')) {
+        const eventIndex = parseInt(data.split('_')[1]) - 1;
+        
+        bot.sendMessage(chatId, `You clicked the Edit button for event ${eventIndex + 1}`);
+    } else if (data.startsWith('/next_page')) {
+        const nextPage = parseInt(data.split(' ')[1]) || 1;
+        bot.sendMessage(chatId, `/listreminder ${nextPage}`);
+    }
+});
 
 
 module.exports = botRotues; // Export the router
