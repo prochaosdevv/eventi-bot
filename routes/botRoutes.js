@@ -270,6 +270,17 @@ botRotues.get('/', async (req, res) => {
             if (callbackQuery.data == "/setreminder") {
                 setreminder(chatId)
             }
+            if(callbackQuery.data == "/listreminder"){
+                // const chatId = msg.chat.id;
+                const page = 0;
+            
+                try {
+                   await showEvent(chatId , page ,false)
+                } catch (error) { 
+                    console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
+                    bot.sendMessage(chatId, 'Error fetching events. Please try again later.');
+                }
+            }
             if (callbackQuery.data == "/nolink") {
                 bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
                     inline_keyboard: [[]]
