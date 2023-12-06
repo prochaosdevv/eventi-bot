@@ -9,7 +9,7 @@ const RequestModel = require('../models/requestsModel');
 const token = process.env.TG_BOT_SECRET;
 const bot = new TelegramBot(token, { polling: true });
 const path = require('path');
-const { SEVEN_DAY, ONE_DAY, ONE_HOUR } = require('../config/constants');
+const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo } = require('../config/constants');
 const { log } = require('console');
 const Calendar = require('telegram-inline-calendar');
 
@@ -322,6 +322,31 @@ botRotues.get('/', async (req, res) => {
                 setReminderDateInterval(chatId, callbackQuery.data.replace("reminderDate_", ""))
             }
 
+            
+            if (callbackQuery.data.includes("delete_")) {
+                const requestId = callbackQuery.data.split('_')[1];
+                try {
+                   
+                    const eventDetails = await getEventDataByRequestId(chatId, requestId);
+                    console.log("eventDetails", eventDetails)
+
+                    if (!eventDetails) {
+                        bot.sendMessage(chatId, 'Event not found. Please try again.');
+                        return;
+                    }
+
+                    const eventName = eventDetails.eventName;
+                    await deleteEventByRequestId(chatId, requestId);
+                    const firstEightDigits = requestId.substring(0, 8);
+                    bot.sendMessage(chatId, `Event deleted successfully with requestId ${firstEightDigits} and eventName ${eventName}`);
+
+                } catch (error) {
+                    console.error(`Error handling delete event for chatId ${chatId} and requestId ${requestId}: ${error.message}`);
+                    bot.sendMessage(chatId, 'Error deleting event. Please try again later.');
+                }
+
+            }
+
             if (callbackQuery.data.includes("confirm")) {
                 try {
                     const userEvents = await store_data_in_database(chatId);
@@ -378,9 +403,34 @@ botRotues.get('/', async (req, res) => {
 
             if (callbackQuery.data.startsWith('/edit_')) {
                 const eventIndex = parseInt(callbackQuery.data.split('_')[1]) - 1;
+
+                const eventId = callbackQuery.data.split('_')[1];
+                console.log("eventId",eventId)
+                try {
+                    await editEvent(chatId, eventId);
+                } catch (error) {
+                    console.error(`Error handling /edit_${eventId} for chatId ${chatId}: ${error.message}`);
+                    bot.sendMessage(chatId, 'Error editing the event. Please try again later.');
+                }
                 
                 bot.sendMessage(chatId, `You clicked the Edit button for event ${eventIndex + 1}`);
-            }  
+            } 
+            // if (callbackQuery.data == '/nextfield') {
+            //     handleNextField(chatId);
+            // } else if (callbackQuery.data == '/prevfield') {
+            //     handlePrevField(chatId);
+            // } else if (callbackQuery.data == '/switchfieldset') {
+            //     handleSwitchFieldSet(chatId);
+            // } else if (callbackQuery.data == '/pageinfo') {
+            //     handlePageInfo(chatId);
+            // }
+            // else if (callbackQuery.data == '/nextfield') {
+            //     currentFieldIndex++;
+            //     askForFieldUpdate();
+            // }else if (callbackQuery.data == '/prevfield') {
+            //     currentFieldIndex = Math.max(0, currentFieldIndex - 1);
+            //     askForFieldUpdate();
+            // }
             
             if (callbackQuery.data.includes('next_page_')) {
                 const nextPage = parseInt(callbackQuery.data.split('_')[2]) || 1;
@@ -816,29 +866,10 @@ async function store_data_in_database(chatId) {
     }
 }
 
-
-
-// bot.onText(/\/confirm/, async (msg) => {
-//     const chatId = msg.chat.id;
-
-//     try {
-//       const userEvents = await store_data_in_database(chatId);
-//       console.log('User Events:', userEvents);
-
-//       bot.sendMessage(chatId, 'User events confirmed!');
-//     } catch (error) {
-//       console.error('Error:', error);
-//       bot.sendMessage(chatId, 'Error confirming user events. Please try again later.');
-//     }
-//   });
-
-
 async function fetchEventsFromDatabase(chatId) {
     try {
   
         const userEvents = await RequestModel.find({ chatId: chatId });
-        // const userEvents = await RequestModel.find({ chatId: chatId }).sort({ createdAt: -1 }).limit(1);
-        // console.log("userEvents", userEvents)
         if (userEvents.length === 0) {
             return [];
         }
@@ -878,8 +909,44 @@ function formatMillisecondsToReminder(milliseconds) {
 }
 
 
+async function getEventDataByRequestId(chatId, requestId) {
+    try {
+
+        const eventDetails = await RequestModel.findOne({ chatId, _id: requestId });
+        if (!eventDetails) {
+            return null;
+        }
+
+        return eventDetails;
+    } catch (error) {
+        console.error(`Error getting event data for chatId ${chatId} and requestId ${requestId}: ${error.message}`);
+        throw error;
+    }
+}
 
 
+
+
+async function deleteEventByRequestId(chatId, requestId) {
+    try {
+        console.log("chatId", chatId, "requestId", requestId)
+        const deletedEvent = await RequestModel.findOneAndDelete({ chatId: chatId, _id: requestId });
+
+        if (!deletedEvent) {
+            console.log(`Event with requestId ${requestId} not found for chatId ${chatId}`);
+            return null;
+        }
+
+        console.log(`Deleted event with requestId ${requestId} for chatId ${chatId}`);
+        return deletedEvent;
+    } catch (error) {
+        console.error(`Error deleting event with requestId ${requestId} for chatId ${chatId}: ${error.message}`);
+        throw error;
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 const EVENTS_PER_PAGE = 1;
 
@@ -898,15 +965,13 @@ bot.onText(/\/listreminder/, async (msg) => {
 
 async function showEvent(chatId , page ,update, callback_data = null){
     const userEvents = await fetchEventsFromDatabase(chatId);
-    // const startIndex = (page - 1) * EVENTS_PER_PAGE;
-    // const endIndex = startIndex + EVENTS_PER_PAGE;
+
 
     let eventMsg = '';
     if (userEvents.length > 0) {
-        // for (let i = startIndex; i < Math.min(endIndex, userEvents.length); i++) {
+  
             const event = userEvents[page];
             console.log(page);
-            // console.log(event);
 
             eventMsg += `Event #${page + 1} of ${userEvents.length}:\n\n`;
             eventMsg += `📃 Project Name: ${event.eventName}\n` +
@@ -977,33 +1042,123 @@ async function showEvent(chatId , page ,update, callback_data = null){
                 parse_mode: 'markdown',
                 reply_markup: keyboard,
             });    
-
-
-            // console.log(keyboard);
-            // bot.editMessageText(eventMsg,{chat_id: chatId, message_id: callback_data.message.message_id});
-            // // bot.edit(eventMsg,{chat_id: chatId});
-            // bot.editMessageReplyMarkup(JSON.stringify(keyboard)
-            //     , {
-            //         chat_id: chatId,
-            //         message_id: callback_data.message.message_id
-            //     })
         }
     } else {
         bot.sendMessage(chatId, "You haven't created any events yet.");
     }
 }
-// bot.on('callback_query', async (callbackQuery) => {
-//     const chatId = callbackQuery.message.chat.id;
-//     const data = callbackQuery.data;
 
-  
-// });
+
+
+async function fetchEventById(chatId, eventId) {
+try {
+
+    const event = await RequestModel.findOne({ chatId: chatId, _id: eventId });
+    if(!event){
+        throw new Error("No such Event Found");
+    }
+
+    return event;
+} catch (error) {
+    throw new Error(`Error fetching event by ID and chatId: ${error.message}`);
+}
+}
+
+let currentFieldIndex = 0;
+let currentFieldSet = fieldMarkupsOne;
+let currentPage = 0;
+
+async function editEvent(chatId, eventId) {
+    const event = await fetchEventById(chatId, eventId);
+
+    if (!event) {
+        bot.sendMessage(chatId, 'Event not found.');
+        return;
+    }
+
+    const fieldsToUpdate = Object.keys(currentFieldSet);
+
+    
+
+    const createFieldSetButtons = (event) => {
+        const fields = currentPage == 0 ? fieldMarkupsOne : fieldMarkupsTwo;
+
+        const fieldButtons = Object.keys(fields)
+            .filter(field => !(field === 'eventDateRemindInterval' && event.eventDate === 'false'))
+            .map(field => (
+                [{ text: field, callback_data: `/editfield_${field}` }]
+            ));
+
+        let navigationButtons = [];
+
+        if (currentPage === 0 && currentFieldIndex < fieldsToUpdate.length - 1) {
+            navigationButtons.push([{ text: 'Next', callback_data: '/nextfield' }]);
+        } else if (currentPage === 1 && currentFieldIndex > 0) {
+            navigationButtons.push([{ text: 'Previous', callback_data: '/prevfield' }]);
+        }
+
+        return [
+            ...fieldButtons,
+            ...navigationButtons,
+            // [{ text: 'Switch Field Set', callback_data: '/switchfieldset' }],
+            // [{ text: `Page: ${currentPage}`, callback_data: '/pageinfo' }]
+        ];
+    };
+
+    const askForFieldUpdate = async () => {
+        const currentField = fieldsToUpdate[currentFieldIndex];
+        const markup = currentFieldSet[currentField];
+        const buttons = createFieldSetButtons(event);
+
+        if (markup) {
+            bot.sendMessage(chatId, `Editing event: ${event.eventName}\nPlease provide updated details`, {
+                reply_markup: { inline_keyboard: buttons }
+            });
+
+            
+        } else {
+            bot.sendMessage(chatId, `${currentField} is not editable.`, { reply_markup: { inline_keyboard: buttons } });
+        }
+    };
+
+    const askForNextField = async () => {
+        if (currentFieldIndex < fieldsToUpdate.length) {
+            askForFieldUpdate();
+        } else {
+            try {
+                await updateEventInDatabase(eventId, event);
+                bot.sendMessage(chatId, 'Event updated successfully and saved to the database!');
+            } catch (error) {
+                console.error(`Error updating event for chatId ${chatId} and eventId ${eventId}: ${error.message}`);
+                bot.sendMessage(chatId, 'Error updating the event. Please try again later.');
+            }
+        }
+    };
+
+    const updateCommand = '/updateevent';
+    const handleUpdateCommand = async (msg) => {
+        const updatedDetails = msg.text.replace(updateCommand, '').trim();
+        const currentField = fieldsToUpdate[currentFieldIndex];
+
+        if (currentField) {
+            event[currentField] = updatedDetails;
+            bot.sendMessage(chatId, `Details for ${currentField} updated successfully!`);
+        }
+
+        currentFieldIndex++;
+        askForNextField();
+    };
+
+    bot.onText(new RegExp(`^${updateCommand}`), handleUpdateCommand);
+
+    askForFieldUpdate();
+}
+
+
+
+
+
+
 
 
 module.exports = botRotues; // Export the router
-
-
-
-
-
-
