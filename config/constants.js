@@ -11,11 +11,11 @@ exports.fieldMarkupsOne = {
 };
 
 exports.fieldMarkupsTwo = {
-    "eventLink": "Website",
-    "eventTwitter":"Twitter",
-    "communityLink": "Community Link",
-    "remindBefore": "Reminder",
-    "eventDateRemindInterval": "Event Date Remind Interval"
+    eventLink : "Website",
+    eventTwitter :"Twitter",
+    communityLink : "Community Link",
+    remindBefore : "Reminder",
+    eventDateRemindInterval : "Event Date Remind Interval"
 };
 
 

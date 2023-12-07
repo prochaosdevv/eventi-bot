@@ -233,7 +233,7 @@ const editNextMsg = {
     "communityLink": communityLinkMsg,
     "eventDate": eventDateMsg,
     "remindBefore": remindBeforeMsg,
-    "eventDateRemindInterval": null
+    "eventDateRemindInterval": eventDateRemindIntervalMsg
 }
 
 const editNextMarkup = {
@@ -245,7 +245,7 @@ const editNextMarkup = {
     "communityLink": communityLinkMarkup,
     "eventDate": eventDateMarkup,
     "remindBefore": remindBeforeMsgMarkup,
-    "eventDateRemindInterval": null
+    "eventDateRemindInterval": eventDateRemindIntervalMarkup
 }
 
 
@@ -309,6 +309,10 @@ botRotues.get('/', async (req, res) => {
                 }
             }
             if (callbackQuery.data == "/nolink") {
+                if(updateVariable[chatId]){
+                updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
+                return
+                }
                 bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
                     inline_keyboard: [[]]
                 })
@@ -342,11 +346,20 @@ botRotues.get('/', async (req, res) => {
             if (callbackQuery.data.includes("remindBefore")) {
                 console.log(callbackQuery.data);
                 console.log(callbackQuery.data.replace("remindBefore_", ""));
+                if(updateVariable[chatId]){
+                    updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , callbackQuery.data.replace("remindBefore_", ""))
+                    return
+                    }
                 setRemindBefore(chatId, callbackQuery.data.replace("remindBefore_", ""))
             }
 
             if (callbackQuery.data.includes("reminderDate")) {
+                if(updateVariable[chatId]){
+                    updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , callbackQuery.data.replace("reminderDate_", ""))
+                    return
+                    }
                 setReminderDateInterval(chatId, callbackQuery.data.replace("reminderDate_", ""))
+
             }
 
             
@@ -441,7 +454,7 @@ botRotues.get('/', async (req, res) => {
                     bot.sendMessage(chatId, 'Error editing the event. Please try again later.');
                 }
                 
-                bot.sendMessage(chatId, `You clicked the Edit button for event ${eventIndex + 1}`);
+                // bot.sendMessage(chatId, `You clicked the Edit button for event ${eventIndex + 1}`);
                 //
               
             } 
@@ -452,6 +465,8 @@ botRotues.get('/', async (req, res) => {
                 console.log("eventId ",eventId)
                 try {
                     await editEvent(chatId, eventId,2);
+                    bot.deleteMessage(chatId, callbackQuery.message.message_id)
+
                 } catch (error) {
                     console.error(`Error handling /edit_${eventId} for chatId ${chatId}: ${error.message}`);
                     bot.sendMessage(chatId, 'Error editing the event. Please try again later.');
@@ -463,6 +478,7 @@ botRotues.get('/', async (req, res) => {
                 console.log("eventId ",eventId)
                 try {
                     await editEvent(chatId, eventId,1);
+                    bot.deleteMessage(chatId, callbackQuery.message.message_id)
                 } catch (error) {
                     console.error(`Error handling /edit_${eventId} for chatId ${chatId}: ${error.message}`);
                     bot.sendMessage(chatId, 'Error editing the event. Please try again later.');
@@ -519,7 +535,12 @@ botRotues.get('/', async (req, res) => {
         if (!uniqueid.includes(chatId + msg.message_id)) {
 
             if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder") {
-                updateData(chatId, text)
+                if(updateVariable[chatId]){
+                    updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , text)
+                }
+                else{
+                    updateData(chatId, text)
+                }
                 uniqueid.push(chatId + msg.message_id)
 
             }
@@ -1037,25 +1058,25 @@ async function showEvent(chatId , page ,update, callback_data = null){
             eventMsg += `📃 Project Name: ${event.eventName}\n` +
                         `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
                         `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
-                        `🗓️ Event Date Time: ${event.eventDate ? `${event.eventDate} EST` : 'NA'}` +
+                        `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${event.eventDate} EST` : 'NA'}` +
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
-                        `${!event.eventDate ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
+                        `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
         // }
 
         let linksMarkup = [];
-        if (event.eventLink) {
+        if (event.eventLink &&  event.eventLink != 'false') {
             linksMarkup.push({
                 text: "💻Website",
                 url: event.eventLink,
             });
         }
-        if (event.eventTwitter) {
+        if (event.eventTwitter &&  event.eventTwitter != 'false') {
             linksMarkup.push({
                 text: "🐦Twitter",
                 url: event.eventTwitter
             })
         }
-        if (event.communityLink) {
+        if (event.communityLink &&  event.communityLink != 'false' ) {
             let communityText = '👥Discord';
             let _communityLink = event.communityLink.toLowerCase();
             if (_communityLink.includes("t.me") || _communityLink.includes("telegram")) {
@@ -1135,20 +1156,24 @@ const createFieldSetButtons = (event,currentPage) => {
         rowButtons = [
             Object.keys(fields)
                 .filter(field => ['eventName', 'eventChain'].includes(field))
-                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` })),
+                .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),
             Object.keys(fields)
                 .filter(field => ['eventPad', 'eventDate'].includes(field))
-                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` }))
+                .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),
         ];
     } else if (currentPage == 2) {
         rowButtons = [
             Object.keys(fields)
-                .filter(field => ['eventLink', 'eventTwitter','communityLink'].includes(field))
-                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` })),
+                .filter(field => ['eventLink', 'eventTwitter'].includes(field))
+                .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),
             Object.keys(fields)
-                .filter(field => [ 'remindBefore', 'eventDateRemindInterval'].includes(field))
-                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` }))
+                .filter(field => ['communityLink','remindBefore'].includes(field))
+                .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),        
         ];
+
+        if(!event.eventDate  || event.eventDate == 'false'){
+            rowButtons.push([{ text: fields['eventDateRemindInterval'], callback_data: `/editfield_eventDateRemindInterval_${event._id}` }])
+        }  
     }
 
     let navigationButtons = [];
@@ -1175,7 +1200,7 @@ async function editEvent(chatId, eventId,index) {
 
         const buttons = createFieldSetButtons(event,index);
 
-        bot.sendMessage(chatId, `Editing event: ${event.eventName}`, {
+        bot.sendMessage(chatId, `Editing event: ${event.eventName}.\n\nPlease select which field you want to edit`, {
             reply_markup: { inline_keyboard: buttons }
         });
     };
@@ -1191,9 +1216,55 @@ async function editEvent(chatId, eventId,index) {
         // updateVariable.push({ chatId, field });
         console.log("field",field)
 
-        updateVariable[chatId]= field
-        bot.sendMessage(chatId,editNextMsg[field],editNextMarkup[field]);
+        updateVariable[chatId] = {field: field , requestId:requestId };
+        bot.sendMessage(chatId,editNextMsg[field], field == "eventDate" ? {} : editNextMarkup[field]);
     
+    };
+
+    const updateField = async (chatId,field,requestId,value) => {
+        try {
+            // console.log("chatId", chatId, "requestId", requestId)
+            if (field == "eventDateRemindInterval") {
+                value = value * 86400000;
+            }
+            else  if (field == "eventLink" || field == "eventTwitter" || field == "communityLink") {
+                    if (!isLinkValid(value)) {
+                        bot.sendMessage(chatId, "The link you shared is not valid, please share a valid link.(e.g. “https://google.com”)");
+                        return;
+                    }
+            }
+            else  if (field == "eventDate") {
+                    let _date = new Date(value);
+                    let _cdate = new Date();
+                    // console.log(_date);
+                    if (_date == "Invalid Date" || _date < _cdate) {
+                        bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. MM/DD/YYYY)");
+                        return;
+                    }
+    
+                    value = (_date.getMonth() + 1) + "/" + _date.getFullYear() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
+                    // console.log(data);
+                    // data = _date.toString();
+                }
+
+            const updateEvent = await RequestModel.findOneAndUpdate( { _id : requestId},
+                { $set: { [field]: value}},
+                { new: true } );
+    
+            if (!updateEvent) {
+                console.log(`Event with requestId ${requestId} not found for chatId ${chatId}`);
+                return null;
+            }
+            updateVariable[chatId] = false ;
+            bot.sendMessage(chatId,'Updated event');
+    
+            // console.log(`Updated event`);
+            // editEvent(c)
+            // return deletedEvent;
+        } catch (error) {
+            console.error(`Error deleting event with requestId ${requestId} for chatId ${chatId}: ${error.message}`);
+            throw error;
+        }
     };
 
 
@@ -1384,19 +1455,7 @@ module.exports = botRotues; // Export the router
 //         }
 //     };
 
-//     const askForNextField = async () => {
-//         if (currentFieldIndex < fieldsToUpdate.length) {
-//             askForFieldUpdate();
-//         } else {
-//             try {
-//                 await updateEventInDatabase(eventId, event);
-//                 bot.sendMessage(chatId, 'Event updated successfully and saved to the database!');
-//             } catch (error) {
-//                 console.error(`Error updating event for chatId ${chatId} and eventId ${eventId}: ${error.message}`);
-//                 bot.sendMessage(chatId, 'Error updating the event. Please try again later.');
-//             }
-//         }
-//     };
+
 
 //     const updateCommand = '/updateevent';
 //     const handleUpdateCommand = async (msg) => {
