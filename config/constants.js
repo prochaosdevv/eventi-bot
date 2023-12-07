@@ -1,19 +1,21 @@
 exports.SEVEN_DAY = "604800000"
-exports.ONE_DAY ="86400000"
-exports.ONE_HOUR="3600000"
+exports.ONE_DAY = "86400000"
+exports.ONE_HOUR = "3600000"
 
 exports.fieldMarkupsOne = {
-    "eventName": "Event Name",
-    "eventChain": "Event Chain",
-    "eventPad": "Event Pad",
-    "eventDate": "Event Date"
+    "eventName": "Project Name",
+    "eventChain": "Project Chain",
+    "eventPad" :"Platform",
+    "eventDate": "Event Date Time"
+    
 };
 
 exports.fieldMarkupsTwo = {
-    "eventLink": "Event Link",
-    "eventTwitter": "Event Twitter",
+    "eventLink": "Website",
+    "eventTwitter":"Twitter",
     "communityLink": "Community Link",
-    "remindBefore": "Remind Before",
+    "remindBefore": "Reminder",
     "eventDateRemindInterval": "Event Date Remind Interval"
 };
+
 

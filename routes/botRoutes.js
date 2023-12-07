@@ -21,7 +21,7 @@ const calendar = new Calendar(bot, {
 });
 
 
-
+const updateVariable = [];
 var uniqueid = [];
 const sourceFilePath = path.join(__dirname, '../config/master.json');
 
@@ -211,7 +211,7 @@ const nextMsg = {
 
 const nextMmarkup = {
     "eventName": eventChainMarkup,
-    "eventChain": eventChainMarkup,
+    "eventChain": eventPadMarkup,
     "eventPad": eventLinkMarkup,
     "eventLink": eventTwitterMarkup,
     "eventTwitter": communityLinkMarkup,
@@ -221,6 +221,33 @@ const nextMmarkup = {
     "remindBefore": eventDateRemindIntervalMarkup,
     "eventDateRemindInterval": null
 }
+
+
+
+const editNextMsg = {
+    "eventName": eventNameMsg,
+    "eventChain": eventChainMsg,
+    "eventPad": eventPadMsg,
+    "eventLink": eventLinkMsg,
+    "eventTwitter": eventTwitterMsg,
+    "communityLink": communityLinkMsg,
+    "eventDate": eventDateMsg,
+    "remindBefore": remindBeforeMsg,
+    "eventDateRemindInterval": null
+}
+
+const editNextMarkup = {
+    "eventName": eventNameMarkup,
+    "eventChain": eventChainMarkup,
+    "eventPad": eventPadMarkup,
+    "eventLink": eventLinkMarkup,
+    "eventTwitter": eventTwitterMarkup,
+    "communityLink": communityLinkMarkup,
+    "eventDate": eventDateMarkup,
+    "remindBefore": remindBeforeMsgMarkup,
+    "eventDateRemindInterval": null
+}
+
 
 botRotues.get('/', async (req, res) => {
     // console.log("request received");
@@ -403,35 +430,68 @@ botRotues.get('/', async (req, res) => {
 
             if (callbackQuery.data.startsWith('/edit_')) {
                 const eventIndex = parseInt(callbackQuery.data.split('_')[1]) - 1;
+                console.log("eventIndex",eventIndex)
 
                 const eventId = callbackQuery.data.split('_')[1];
                 console.log("eventId",eventId)
                 try {
-                    await editEvent(chatId, eventId);
+                    await editEvent(chatId, eventId,1);
                 } catch (error) {
                     console.error(`Error handling /edit_${eventId} for chatId ${chatId}: ${error.message}`);
                     bot.sendMessage(chatId, 'Error editing the event. Please try again later.');
                 }
                 
                 bot.sendMessage(chatId, `You clicked the Edit button for event ${eventIndex + 1}`);
+                //
+              
             } 
-            // if (callbackQuery.data == '/nextfield') {
-            //     handleNextField(chatId);
-            // } else if (callbackQuery.data == '/prevfield') {
-            //     handlePrevField(chatId);
-            // } else if (callbackQuery.data == '/switchfieldset') {
+       
+        
+            if (callbackQuery.data.startsWith('/nextfield_')) {
+                const eventId = callbackQuery.data.split('_')[1];
+                console.log("eventId ",eventId)
+                try {
+                    await editEvent(chatId, eventId,2);
+                } catch (error) {
+                    console.error(`Error handling /edit_${eventId} for chatId ${chatId}: ${error.message}`);
+                    bot.sendMessage(chatId, 'Error editing the event. Please try again later.');
+                }
+                
+            }      
+            if (callbackQuery.data.startsWith('/prevfield_')) {
+                const eventId = callbackQuery.data.split('_')[1];
+                console.log("eventId ",eventId)
+                try {
+                    await editEvent(chatId, eventId,1);
+                } catch (error) {
+                    console.error(`Error handling /edit_${eventId} for chatId ${chatId}: ${error.message}`);
+                    bot.sendMessage(chatId, 'Error editing the event. Please try again later.');
+                }
+                
+            } 
+        
+            if (callbackQuery.data.startsWith('/editfield_')) {
+                console.log("here")
+                const { field, requestId } = extractFieldAndRequestId(callbackQuery.data);
+              
+
+                try {
+      
+                      askNextField(chatId, { field, requestId });
+               } catch (error) {
+                    console.error(`Error handling /edit_${field}_${requestId} for chatId ${chatId}: ${error.message}`);
+                    bot.sendMessage(chatId, 'Error processing the request. Please try again later.');
+              } 
+               
+                
+            } 
+
+           
+                // else if (callbackQuery.data == '/switchfieldset') {
             //     handleSwitchFieldSet(chatId);
             // } else if (callbackQuery.data == '/pageinfo') {
             //     handlePageInfo(chatId);
             // }
-            // else if (callbackQuery.data == '/nextfield') {
-            //     currentFieldIndex++;
-            //     askForFieldUpdate();
-            // }else if (callbackQuery.data == '/prevfield') {
-            //     currentFieldIndex = Math.max(0, currentFieldIndex - 1);
-            //     askForFieldUpdate();
-            // }
-            
             if (callbackQuery.data.includes('next_page_')) {
                 const nextPage = parseInt(callbackQuery.data.split('_')[2]) || 1;
                 console.log(nextPage);
@@ -1064,11 +1124,48 @@ try {
 }
 }
 
-let currentFieldIndex = 0;
-let currentFieldSet = fieldMarkupsOne;
-let currentPage = 0;
 
-async function editEvent(chatId, eventId) {
+
+const createFieldSetButtons = (event,currentPage) => {
+    const fields = currentPage == 1 ? fieldMarkupsOne : fieldMarkupsTwo;
+
+    let rowButtons = [];
+
+    if (currentPage == 1) {
+        rowButtons = [
+            Object.keys(fields)
+                .filter(field => ['eventName', 'eventChain'].includes(field))
+                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` })),
+            Object.keys(fields)
+                .filter(field => ['eventPad', 'eventDate'].includes(field))
+                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` }))
+        ];
+    } else if (currentPage == 2) {
+        rowButtons = [
+            Object.keys(fields)
+                .filter(field => ['eventLink', 'eventTwitter','communityLink'].includes(field))
+                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` })),
+            Object.keys(fields)
+                .filter(field => [ 'remindBefore', 'eventDateRemindInterval'].includes(field))
+                .map(field => ({ text: field, callback_data: `/editfield_${field}_${event._id}` }))
+        ];
+    }
+
+    let navigationButtons = [];
+
+    if (currentPage == 1) {
+        navigationButtons.push({ text: 'Next', callback_data: '/nextfield_'+event._id });
+    } else if (currentPage == 2 ) {
+        navigationButtons.push({ text: 'Previous', callback_data: '/prevfield_'+event._id });
+    }
+
+    const inlineKeyboard = [...rowButtons, navigationButtons];
+
+    return inlineKeyboard;
+};
+
+
+async function editEvent(chatId, eventId,index) {
     const event = await fetchEventById(chatId, eventId);
 
     if (!event) {
@@ -1076,89 +1173,246 @@ async function editEvent(chatId, eventId) {
         return;
     }
 
-    const fieldsToUpdate = Object.keys(currentFieldSet);
+        const buttons = createFieldSetButtons(event,index);
 
+        bot.sendMessage(chatId, `Editing event: ${event.eventName}`, {
+            reply_markup: { inline_keyboard: buttons }
+        });
+    };
+
+
+    const extractFieldAndRequestId = (callbackData) => {
+        const [, field, requestId] = callbackData.split('_');
+        return { field, requestId };
+    };
+
+
+    const askNextField = (chatId, { field, requestId }) => {
+        // updateVariable.push({ chatId, field });
+        console.log("field",field)
+
+        updateVariable[chatId]= field
+        bot.sendMessage(chatId,editNextMsg[field],editNextMarkup[field]);
     
-
-    const createFieldSetButtons = (event) => {
-        const fields = currentPage == 0 ? fieldMarkupsOne : fieldMarkupsTwo;
-
-        const fieldButtons = Object.keys(fields)
-            .filter(field => !(field === 'eventDateRemindInterval' && event.eventDate === 'false'))
-            .map(field => (
-                [{ text: field, callback_data: `/editfield_${field}` }]
-            ));
-
-        let navigationButtons = [];
-
-        if (currentPage === 0 && currentFieldIndex < fieldsToUpdate.length - 1) {
-            navigationButtons.push([{ text: 'Next', callback_data: '/nextfield' }]);
-        } else if (currentPage === 1 && currentFieldIndex > 0) {
-            navigationButtons.push([{ text: 'Previous', callback_data: '/prevfield' }]);
-        }
-
-        return [
-            ...fieldButtons,
-            ...navigationButtons,
-            // [{ text: 'Switch Field Set', callback_data: '/switchfieldset' }],
-            // [{ text: `Page: ${currentPage}`, callback_data: '/pageinfo' }]
-        ];
     };
-
-    const askForFieldUpdate = async () => {
-        const currentField = fieldsToUpdate[currentFieldIndex];
-        const markup = currentFieldSet[currentField];
-        const buttons = createFieldSetButtons(event);
-
-        if (markup) {
-            bot.sendMessage(chatId, `Editing event: ${event.eventName}\nPlease provide updated details`, {
-                reply_markup: { inline_keyboard: buttons }
-            });
-
-            
-        } else {
-            bot.sendMessage(chatId, `${currentField} is not editable.`, { reply_markup: { inline_keyboard: buttons } });
-        }
-    };
-
-    const askForNextField = async () => {
-        if (currentFieldIndex < fieldsToUpdate.length) {
-            askForFieldUpdate();
-        } else {
-            try {
-                await updateEventInDatabase(eventId, event);
-                bot.sendMessage(chatId, 'Event updated successfully and saved to the database!');
-            } catch (error) {
-                console.error(`Error updating event for chatId ${chatId} and eventId ${eventId}: ${error.message}`);
-                bot.sendMessage(chatId, 'Error updating the event. Please try again later.');
-            }
-        }
-    };
-
-    const updateCommand = '/updateevent';
-    const handleUpdateCommand = async (msg) => {
-        const updatedDetails = msg.text.replace(updateCommand, '').trim();
-        const currentField = fieldsToUpdate[currentFieldIndex];
-
-        if (currentField) {
-            event[currentField] = updatedDetails;
-            bot.sendMessage(chatId, `Details for ${currentField} updated successfully!`);
-        }
-
-        currentFieldIndex++;
-        askForNextField();
-    };
-
-    bot.onText(new RegExp(`^${updateCommand}`), handleUpdateCommand);
-
-    askForFieldUpdate();
-}
-
-
-
-
-
 
 
 
 module.exports = botRotues; // Export the router
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// let currentFieldIndex = 0;
+// let currentFieldSet = fieldMarkupsOne;
+// let currentPage = 0;
+
+// async function editEvent(chatId, eventId) {
+//     const event = await fetchEventById(chatId, eventId);
+
+//     if (!event) {
+//         bot.sendMessage(chatId, 'Event not found.');
+//         return;
+//     }
+
+//     const fieldsToUpdate = Object.keys(currentFieldSet);
+
+    
+
+//     const createFieldSetButtons = (event) => {
+//         const fields = currentPage == 0 ? fieldMarkupsOne : fieldMarkupsTwo;
+
+//         const fieldButtons = Object.keys(fields)
+//             .filter(field => !(field == 'eventDateRemindInterval' && event.eventDate == 'false'))
+//             .map(field => (
+//                 [{ text: field, callback_data: `/editfield_${field}` }]
+//             ));
+
+//         let navigationButtons = [];
+
+//         if (currentPage == 0 && currentFieldIndex < fieldsToUpdate.length - 1) {
+//             navigationButtons.push([{ text: 'Next', callback_data: '/nextfield' }]);
+//         } else if (currentPage == 1 && currentFieldIndex > 0) {
+//             navigationButtons.push([{ text: 'Previous', callback_data: '/prevfield' }]);
+//         }
+
+//         return [
+//             ...fieldButtons,
+//             ...navigationButtons,
+//             // [{ text: 'Switch Field Set', callback_data: '/switchfieldset' }],
+//             // [{ text: `Page: ${currentPage}`, callback_data: '/pageinfo' }]
+//         ];
+//     };
+
+//     const askForFieldUpdate = async () => {
+//         const currentField = fieldsToUpdate[currentFieldIndex];
+//         const markup = currentFieldSet[currentField];
+//         const buttons = createFieldSetButtons(event);
+
+//         if (markup) {
+//             bot.sendMessage(chatId, `Editing event: ${event.eventName}\nPlease provide updated details`, {
+//                 reply_markup: { inline_keyboard: buttons }
+//             });
+
+            
+//         } else {
+//             bot.sendMessage(chatId, `${currentField} is not editable.`, { reply_markup: { inline_keyboard: buttons } });
+//         }
+//     };
+
+//     const askForNextField = async () => {
+//         if (currentFieldIndex < fieldsToUpdate.length) {
+//             askForFieldUpdate();
+//         } else {
+//             try {
+//                 await updateEventInDatabase(eventId, event);
+//                 bot.sendMessage(chatId, 'Event updated successfully and saved to the database!');
+//             } catch (error) {
+//                 console.error(`Error updating event for chatId ${chatId} and eventId ${eventId}: ${error.message}`);
+//                 bot.sendMessage(chatId, 'Error updating the event. Please try again later.');
+//             }
+//         }
+//     };
+
+//     const updateCommand = '/updateevent';
+//     const handleUpdateCommand = async (msg) => {
+//         const updatedDetails = msg.text.replace(updateCommand, '').trim();
+//         const currentField = fieldsToUpdate[currentFieldIndex];
+
+//         if (currentField) {
+//             event[currentField] = updatedDetails;
+//             bot.sendMessage(chatId, `Details for ${currentField} updated successfully!`);
+//         }
+
+//         currentFieldIndex++;
+//         askForNextField();
+//     };
+
+//     bot.onText(new RegExp(`^${updateCommand}`), handleUpdateCommand);
+
+//     askForFieldUpdate();
+// }
+
+////
+// let currentFieldIndex = 0;
+// let currentFieldSet = fieldMarkupsOne;
+// let currentPage = 0;
+
+// async function editEvent(chatId, eventId) {
+//     const event = await fetchEventById(chatId, eventId);
+
+//     if (!event) {
+//         bot.sendMessage(chatId, 'Event not found.');
+//         return;
+//     }
+
+//     const fieldsToUpdate = Object.keys(currentFieldSet);
+
+    
+
+//     const createFieldSetButtons = (event) => {
+//         const fields = currentPage == 0 ? fieldMarkupsOne : fieldMarkupsTwo;
+
+//         const fieldButtons = Object.keys(fields)
+//             .filter(field => !(field == 'eventDateRemindInterval' && event.eventDate == 'false'))
+//             .map(field => (
+//                 [{ text: field, callback_data: `/editfield_${field}` }]
+//             ));
+
+//         let navigationButtons = [];
+
+//         if (currentPage == 0 && currentFieldIndex < fieldsToUpdate.length - 1) {
+//             navigationButtons.push([{ text: 'Next', callback_data: '/nextfield' }]);
+//         } else if (currentPage == 1 && currentFieldIndex > 0) {
+//             navigationButtons.push([{ text: 'Previous', callback_data: '/prevfield' }]);
+//         }
+
+//         return [
+//             ...fieldButtons,
+//             ...navigationButtons,
+//             // [{ text: 'Switch Field Set', callback_data: '/switchfieldset' }],
+//             // [{ text: `Page: ${currentPage}`, callback_data: '/pageinfo' }]
+//         ];
+//     };
+
+//     const askForFieldUpdate = async () => {
+//         const currentField = fieldsToUpdate[currentFieldIndex];
+//         const markup = currentFieldSet[currentField];
+//         const buttons = createFieldSetButtons(event);
+
+//         if (markup) {
+//             bot.sendMessage(chatId, `Editing event: ${event.eventName}\nPlease provide updated details`, {
+//                 reply_markup: { inline_keyboard: buttons }
+//             });
+
+            
+//         } else {
+//             bot.sendMessage(chatId, `${currentField} is not editable.`, { reply_markup: { inline_keyboard: buttons } });
+//         }
+//     };
+
+//     const askForNextField = async () => {
+//         if (currentFieldIndex < fieldsToUpdate.length) {
+//             askForFieldUpdate();
+//         } else {
+//             try {
+//                 await updateEventInDatabase(eventId, event);
+//                 bot.sendMessage(chatId, 'Event updated successfully and saved to the database!');
+//             } catch (error) {
+//                 console.error(`Error updating event for chatId ${chatId} and eventId ${eventId}: ${error.message}`);
+//                 bot.sendMessage(chatId, 'Error updating the event. Please try again later.');
+//             }
+//         }
+//     };
+
+//     const updateCommand = '/updateevent';
+//     const handleUpdateCommand = async (msg) => {
+//         const updatedDetails = msg.text.replace(updateCommand, '').trim();
+//         const currentField = fieldsToUpdate[currentFieldIndex];
+
+//         if (currentField) {
+//             event[currentField] = updatedDetails;
+//             bot.sendMessage(chatId, `Details for ${currentField} updated successfully!`);
+//         }
+
+//         currentFieldIndex++;
+//         askForNextField();
+//     };
+
+//     bot.onText(new RegExp(`^${updateCommand}`), handleUpdateCommand);
+
+//     askForFieldUpdate();
+// }
