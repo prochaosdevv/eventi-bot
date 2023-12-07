@@ -326,7 +326,10 @@ botRotues.get('/', async (req, res) => {
             }
 
             if (callbackQuery.data == "/continue_reminder") {
-
+                if(updateVariable[chatId]){
+                    updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false , true)
+                    return;
+                    }
                 moveForward(chatId);
 
             }
@@ -343,7 +346,7 @@ botRotues.get('/', async (req, res) => {
 
             }
 
-            if (callbackQuery.data.includes("remindBefore")) {
+            if (callbackQuery.data.startsWith("remindBefore_")) {
                 console.log(callbackQuery.data);
                 console.log(callbackQuery.data.replace("remindBefore_", ""));
                 if(updateVariable[chatId]){
@@ -353,7 +356,7 @@ botRotues.get('/', async (req, res) => {
                 setRemindBefore(chatId, callbackQuery.data.replace("remindBefore_", ""))
             }
 
-            if (callbackQuery.data.includes("reminderDate")) {
+            if (callbackQuery.data.startsWith("reminderDate")) {
                 if(updateVariable[chatId]){
                     updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , callbackQuery.data.replace("reminderDate_", ""))
                     return
@@ -512,7 +515,7 @@ botRotues.get('/', async (req, res) => {
             // } else if (callbackQuery.data == '/pageinfo') {
             //     handlePageInfo(chatId);
             // }
-            if (callbackQuery.data.includes('next_page_')) {
+            if (callbackQuery.data.startsWith('next_page_')) {
                 const nextPage = parseInt(callbackQuery.data.split('_')[2]) || 1;
                 console.log(nextPage);
 
@@ -520,7 +523,7 @@ botRotues.get('/', async (req, res) => {
                 await showEvent(chatId,nextPage,true,callbackQuery)
             }
 
-            if (callbackQuery.data.includes('prev_page_')) {
+            if (callbackQuery.data.startsWith('prev_page_')) {
                 const prevPage = parseInt(callbackQuery.data.split('_')[2]) || 1;
                 console.log(prevPage);
 
@@ -1266,21 +1269,53 @@ async function editEvent(chatId, eventId,index) {
     };
 
 
-    const askNextField = (chatId, { field, requestId , message_id }) => {
+    const askNextField =async (chatId, { field, requestId , message_id }) => {
         // updateVariable.push({ chatId, field });
         console.log("field",field)
+        const getEvent = await RequestModel.findOne({ _id : requestId});
 
         updateVariable[chatId] = {field: field , requestId:requestId };
-        bot.sendMessage(chatId,editNextMsg[field], field == "eventDate" ? {} : editNextMarkup[field]);
+
+        let _keybArray = [];
+        if (!getEvent.remindBefore.includes(SEVEN_DAY)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[SEVEN_DAY],
+                callback_data: `remindBefore_${SEVEN_DAY}`,
+            }])
+        }
+
+        if (!getEvent.remindBefore.includes(ONE_DAY)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[ONE_DAY],
+                callback_data: `remindBefore_${ONE_DAY}`,
+            }])
+        }
+
+        if (!getEvent.remindBefore.includes(ONE_HOUR)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[ONE_HOUR],
+                callback_data: `remindBefore_${ONE_HOUR}`,
+            }])
+        }
+
+        bot.sendMessage(chatId,editNextMsg[field], field == "eventDate" ? {} : field == "remindBefore" ? _keybArray :  editNextMarkup[field]);
         bot.deleteMessage(chatId,  message_id)
     
     };
 
-    const updateField = async (chatId,field,requestId,value) => {
+    const updateField = async (chatId,field,requestId,value, skip=false) => {
+     
+
         try {
+            const getEvent = await RequestModel.findOne({ _id : requestId});
+        if(getEvent){
             // console.log("chatId", chatId, "requestId", requestId)
             if (field == "eventDateRemindInterval") {
                 value = value * 86400000;
+            }
+            else if (field == "remindBefore"){
+                value = value ? [value, ...getEvent.remindBefore] : getEvent.remindBefore ;
+
             }
             else  if (field == "eventLink" || field == "eventTwitter" || field == "communityLink") {
                     if (!isLinkValid(value)) {
@@ -1310,12 +1345,55 @@ async function editEvent(chatId, eventId,index) {
                 console.log(`Event with requestId ${requestId} not found for chatId ${chatId}`);
                 return null;
             }
-            updateVariable[chatId] = false ;
             bot.sendMessage(chatId,'Updated event');
+
+            if (field == "remindBefore" && !skip )
+            {
+
+                let _keybArray = [];
+                if (!value.remindBefore.includes(SEVEN_DAY)) {
+                    _keybArray.push([{
+                        text: REMINDER_TEXT[SEVEN_DAY],
+                        callback_data: `remindBefore_${SEVEN_DAY}`,
+                    }])
+                }
+                if (!value.remindBefore.includes(ONE_DAY)) {
+                    _keybArray.push([{
+                        text: REMINDER_TEXT[ONE_DAY],
+                        callback_data: `remindBefore_${ONE_DAY}`,
+                    }])
+                }
+                if (!value.remindBefore.includes(ONE_HOUR)) {
+                    _keybArray.push([{
+                        text: REMINDER_TEXT[ONE_HOUR],
+                        callback_data: `remindBefore_${ONE_HOUR}`,
+                    }])
+                }
+                _keybArray.push([{
+                    text: "No, continue.",
+                    callback_data: `/continue_reminder`,
+                }])
+        
+                console.log(_keybArray);
+                bot.sendMessage(chatId, "Great! Would you like to add another reminder?", {
+                    "reply_markup": {
+                        "inline_keyboard": _keybArray
+                    }, parse_mode: 'html'
+                });
+                return;
+            }
+
+            updateVariable[chatId] = false ;
             await getEvents(chatId,requestId)
             // console.log(`Updated event`);
             // editEvent(c)
             // return deletedEvent;
+        }
+        else{
+            bot.sendMessage(chatId,'Event not found');
+
+        }
+
         } catch (error) {
             console.error(`Error deleting event with requestId ${requestId} for chatId ${chatId}: ${error.message}`);
             throw error;
