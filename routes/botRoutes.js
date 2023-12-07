@@ -1298,7 +1298,11 @@ async function editEvent(chatId, eventId,index) {
             }])
         }
 
-        bot.sendMessage(chatId,editNextMsg[field], field == "eventDate" ? {} : field == "remindBefore" ? _keybArray :  editNextMarkup[field]);
+        bot.sendMessage(chatId,editNextMsg[field], field == "eventDate" ? {} : field == "remindBefore" ? {
+            "reply_markup": {
+                "inline_keyboard": _keybArray
+            }, parse_mode: 'html'
+        } :  editNextMarkup[field]);
         bot.deleteMessage(chatId,  message_id)
     
     };
