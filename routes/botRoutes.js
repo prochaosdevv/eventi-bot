@@ -1297,10 +1297,20 @@ async function editEvent(chatId, eventId,index) {
                 callback_data: `remindBefore_${ONE_HOUR}`,
             }])
         }
-        _keybArray.push([{
-            text: "No, continue.",
-            callback_data: `/continue_reminder`,
-        }])
+        if(_keybArray.length == 0){
+            _keybArray.push([{
+                text: "All reminder already added. Continue.",
+                callback_data: `/continue_reminder`,
+            }])
+    
+        }
+        else{
+            _keybArray.push([{
+                text: "No, continue.",
+                callback_data: `/continue_reminder`,
+            }])
+    
+        }
         bot.sendMessage(chatId,editNextMsg[field], field == "eventDate" ? {} : field == "remindBefore" ? {
             "reply_markup": {
                 "inline_keyboard": _keybArray
