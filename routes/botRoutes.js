@@ -127,7 +127,9 @@ const communityLinkMarkup = {
 
 };
 
-const eventDateMsg = `Great! When is this event happening? Please enter a date and time (MM/DD/YYYY HH:MM) EST:`;
+// const eventDateMsg = `Great! When is this event happening? Please enter a date and time (MM/DD/YYYY HH:MM) EST:`;
+const eventDateMsg = `Great! When is this event happening? Please enter a date and time (DD/MM/YYYY HH:MM):`;
+
 const eventDateMarkup = {
     "reply_markup": {
         "inline_keyboard": [
@@ -378,10 +380,8 @@ botRotues.get('/', async (req, res) => {
                         return;
                     }
 
-                    const eventName = eventDetails.eventName;
                     await deleteEventByRequestId(chatId, requestId);
-                    const firstEightDigits = requestId.substring(0, 8);
-                    bot.sendMessage(chatId, `Event deleted successfully with requestId ${firstEightDigits} and eventName ${eventName}`);
+                    bot.sendMessage(chatId, 'Event deleted successfully ✅');
 
                 } catch (error) {
                     console.error(`Error handling delete event for chatId ${chatId} and requestId ${requestId}: ${error.message}`);
@@ -729,9 +729,11 @@ async function updateData(chatId, data) {
                 console.log(_date);
                 if (_date == "Invalid Date" || _date < _cdate) {
                     bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. MM/DD/YYYY)");
+                    // bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. DD/MM/YYYY)");
                     return;
                 }
 
+           
                 data = (_date.getMonth() + 1) + "/" + _date.getFullYear() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
                 console.log(data);
                 // data = _date.toString();
@@ -954,19 +956,109 @@ async function store_data_in_database(chatId) {
     }
 }
 
+
+
+// 
+// async function fetchEventsFromDatabase(chatId) {
+//     try {
+  
+//         const userEvents = await RequestModel.find({ chatId: chatId });
+//         if (userEvents.length === 0) {
+//             return [];
+//         }
+//         return userEvents;
+//     } catch (error) {
+//         console.error(`Error fetching events for chatId ${chatId}: ${error.message}`);
+//         throw error;
+//     }
+// }
+
 async function fetchEventsFromDatabase(chatId) {
     try {
-  
         const userEvents = await RequestModel.find({ chatId: chatId });
         if (userEvents.length === 0) {
             return [];
         }
-        return userEvents;
+
+        // Sort events by parsed eventDate in ascending order
+        const sortedEvents = userEvents.sort((eventA, eventB) => {
+            const dateA = parseEventDate(eventA.eventDate);
+            const dateB = parseEventDate(eventB.eventDate);
+            return dateA - dateB;
+        });
+
+        return sortedEvents;
     } catch (error) {
         console.error(`Error fetching events for chatId ${chatId}: ${error.message}`);
         throw error;
     }
 }
+
+function parseEventDate(dateString) {
+    if (!dateString || typeof dateString !== 'string') {
+      
+        return null
+    }
+
+    const dateParts = dateString.split(' ');
+
+    if (dateParts.length !== 2) {
+        return null
+    }
+
+    const [day, month, year] = dateParts[0].split('/');
+    const [hours, minutes] = dateParts[1].split(':');
+
+    return new Date(year, month - 1, day, hours, minutes);
+}
+
+
+// list_launches_next_month
+async function listLaunchesNextMonth(chatId) {
+    try {
+        const userEvents = await RequestModel.find({ chatId: chatId });
+        if (userEvents.length === 0) {
+            return [];
+        }
+
+        const currentDate = new Date();
+        const startOfNextMonth = new Date(currentDate);
+        startOfNextMonth.setMonth(currentDate.getMonth() + 1, 1); 
+
+        const endOfNextMonth = new Date(startOfNextMonth);
+        endOfNextMonth.setMonth(startOfNextMonth.getMonth() + 1); 
+
+        const launchesNextMonth = userEvents.filter(event => {
+            const eventDate = parseEventDate(event.eventDate);
+            return eventDate >= startOfNextMonth && eventDate < endOfNextMonth;
+        });
+
+        const sortedLaunches = launchesNextMonth.sort((eventA, eventB) => {
+            const dateA = parseEventDate(eventA.eventDate);
+            const dateB = parseEventDate(eventB.eventDate);
+            return dateA - dateB;
+        });
+
+        return sortedLaunches;
+    } catch (error) {
+        console.error(`Error fetching launches for chatId ${chatId}: ${error.message}`);
+        throw error;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

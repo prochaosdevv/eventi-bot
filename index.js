@@ -1,16 +1,29 @@
 const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 const mongoose = require('mongoose');
+const cron = require('node-cron');
 const connectDatabase = require('./utils/dbConnection');
 connectDatabase();
 const axios = require('axios');
 
 const botRotues = require("./routes/botRoutes");
+const {checkAndSendReminders,sendReminderForSetEventDate} = require('./controllers/reminderController')
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use("/bot" , botRotues)
+
+
+
+// cron.schedule('*/1 * * * *', () => {
+//   checkAndSendReminders();
+// });
+
+
+// cron.schedule('*/1 * * * *', () => {
+//   sendReminderForSetEventDate();
+// });
 
 
 setInterval(() => {
