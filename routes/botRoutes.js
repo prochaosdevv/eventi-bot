@@ -127,8 +127,8 @@ const communityLinkMarkup = {
 
 };
 
-// const eventDateMsg = `Great! When is this event happening? Please enter a date and time (MM/DD/YYYY HH:MM) EST:`;
-const eventDateMsg = `Great! When is this event happening? Please enter a date and time (DD/MM/YYYY HH:MM):`;
+const eventDateMsg = `Great! When is this event happening? Please enter a date and time (MM/DD/YYYY HH:MM) EST:`;
+// const eventDateMsg = `Great! When is this event happening? Please enter a date and time (DD/MM/YYYY HH:MM):`;
 
 const eventDateMarkup = {
     "reply_markup": {
@@ -541,7 +541,7 @@ botRotues.get('/', async (req, res) => {
         const text = msg.text;
         if (!uniqueid.includes(chatId + msg.message_id)) {
 
-            if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder") {
+            if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder"  && text !== "/listreminder"  && text !== "/list_launches_next_7days" && text !== "/list_launches_next_month") {
                 if(updateVariable[chatId]){
                     updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , text)
                 }
@@ -732,9 +732,9 @@ async function updateData(chatId, data) {
                     // bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. DD/MM/YYYY)");
                     return;
                 }
-
+                data = _date.getTime() 
            
-                data = (_date.getMonth() + 1) + "/" + _date.getFullYear() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
+                // data = (_date.getMonth() + 1) + "/" + _date.getDate() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
                 console.log(data);
                 // data = _date.toString();
             }
@@ -821,7 +821,7 @@ function sendFinal(chatId, _parseContent) {
     text += `📃 Project Name: ${_parseContent.eventName}\n`;
     text += `🔗 Project Chain: ${capitalizeAllLetters(_parseContent.eventChain)}\n`;
     text += `🔁 Platform: ${capitalizeFirstLetter(_parseContent.eventPad)}\n`;
-    text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${_parseContent.eventDate} EST` : 'NA'}\n`;
+    text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${new Date(_parseContent.eventDate).toLocaleString()} EST` : 'NA'}\n`;
     //  text += `⏰ Event Time: ${_parseContent.eventTime ? _parseContent.eventTime : 'NA'}\n`;
     text += _reminder.join('\n');
     text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
@@ -973,21 +973,29 @@ async function store_data_in_database(chatId) {
 //     }
 // }
 
-async function fetchEventsFromDatabase(chatId) {
+async function fetchEventsFromDatabase(chatId, dateFilter=null) {
     try {
-        const userEvents = await RequestModel.find({ chatId: chatId });
+        let _filter = { chatId: chatId };
+
+        if(dateFilter){
+            _filter = {chatId: chatId , eventDate : { $lte : dateFilter }}
+        }
+        console.log(_filter);
+        const userEvents = await RequestModel.find(_filter).sort({eventDate: 1});
+        console.log(userEvents.length);
         if (userEvents.length === 0) {
             return [];
         }
+        return userEvents;
 
         // Sort events by parsed eventDate in ascending order
-        const sortedEvents = userEvents.sort((eventA, eventB) => {
-            const dateA = parseEventDate(eventA.eventDate);
-            const dateB = parseEventDate(eventB.eventDate);
-            return dateA - dateB;
-        });
+        // const sortedEvents = userEvents.sort((eventA, eventB) => {
+        //     const dateA = parseEventDate(eventA.eventDate);
+        //     const dateB = parseEventDate(eventB.eventDate);
+        //     return dateA - dateB;
+        // });
 
-        return sortedEvents;
+        // return sortedEvents;
     } catch (error) {
         console.error(`Error fetching events for chatId ${chatId}: ${error.message}`);
         throw error;
@@ -1014,37 +1022,37 @@ function parseEventDate(dateString) {
 
 
 // list_launches_next_month
-async function listLaunchesNextMonth(chatId) {
-    try {
-        const userEvents = await RequestModel.find({ chatId: chatId });
-        if (userEvents.length === 0) {
-            return [];
-        }
+// async function listLaunchesNextMonth(chatId) {
+//     try {
+//         const userEvents = await RequestModel.find({ chatId: chatId });
+//         if (userEvents.length === 0) {
+//             return [];
+//         }
 
-        const currentDate = new Date();
-        const startOfNextMonth = new Date(currentDate);
-        startOfNextMonth.setMonth(currentDate.getMonth() + 1, 1); 
+//         const currentDate = new Date();
+//         const startOfNextMonth = new Date(currentDate);
+//         startOfNextMonth.setMonth(currentDate.getMonth() + 1, 1); 
 
-        const endOfNextMonth = new Date(startOfNextMonth);
-        endOfNextMonth.setMonth(startOfNextMonth.getMonth() + 1); 
+//         const endOfNextMonth = new Date(startOfNextMonth);
+//         endOfNextMonth.setMonth(startOfNextMonth.getMonth() + 1); 
 
-        const launchesNextMonth = userEvents.filter(event => {
-            const eventDate = parseEventDate(event.eventDate);
-            return eventDate >= startOfNextMonth && eventDate < endOfNextMonth;
-        });
+//         const launchesNextMonth = userEvents.filter(event => {
+//             const eventDate = parseEventDate(event.eventDate);
+//             return eventDate >= startOfNextMonth && eventDate < endOfNextMonth;
+//         });
 
-        const sortedLaunches = launchesNextMonth.sort((eventA, eventB) => {
-            const dateA = parseEventDate(eventA.eventDate);
-            const dateB = parseEventDate(eventB.eventDate);
-            return dateA - dateB;
-        });
+//         const sortedLaunches = launchesNextMonth.sort((eventA, eventB) => {
+//             const dateA = parseEventDate(eventA.eventDate);
+//             const dateB = parseEventDate(eventB.eventDate);
+//             return dateA - dateB;
+//         });
 
-        return sortedLaunches;
-    } catch (error) {
-        console.error(`Error fetching launches for chatId ${chatId}: ${error.message}`);
-        throw error;
-    }
-}
+//         return sortedLaunches;
+//     } catch (error) {
+//         console.error(`Error fetching launches for chatId ${chatId}: ${error.message}`);
+//         throw error;
+//     }
+// }
 
 
 
@@ -1142,6 +1150,36 @@ bot.onText(/\/listreminder/, async (msg) => {
     }
 });
 
+
+bot.onText(/\/list_launches_next_7days/, async (msg) => {
+    const chatId = msg.chat.id;
+    const page = 0;
+
+    try {
+       let _sevenDays =  new Date().getTime() + (86400000 * 7)
+    //    _sevenDays = new Date(_sevenDays);
+        // console.log(_sevenDays);
+       await showEvent(chatId , page ,false , null , _sevenDays)
+    } catch (error) { 
+        console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
+        bot.sendMessage(chatId, 'Error fetching events. Please try again later.');
+    }
+});
+
+bot.onText(/\/list_launches_next_month/, async (msg) => {
+    const chatId = msg.chat.id;
+    const page = 0;
+
+    try {
+       let _thirdtyDays =  new Date().getTime() + (86400000 * 30)
+    //    _thirdtyDays = new Date(_thirdtyDays);
+       await showEvent(chatId , page ,false,null , _thirdtyDays)
+    } catch (error) { 
+        console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
+        bot.sendMessage(chatId, 'Error fetching events. Please try again later.');
+    }
+});
+
 async function getEvents(chatId ,requestId){
     const event = await RequestModel.findOne({ _id: requestId });
     console.log(event);
@@ -1149,7 +1187,7 @@ async function getEvents(chatId ,requestId){
     eventMsg += `📃 Project Name: ${event.eventName}\n` +
                 `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
                 `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
-                `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${event.eventDate} EST` : 'NA'}` +
+                `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${new Date(event.eventDate).toLocaleString()} EST` : 'NA'}` +
                 `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                 `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
 // }
@@ -1193,8 +1231,9 @@ const keyboard = {
     })
  
 }
-async function showEvent(chatId , page ,update, callback_data = null){
-    const userEvents = await fetchEventsFromDatabase(chatId);
+async function showEvent(chatId , page ,update, callback_data = null, dateFilter =null){
+    console.log(dateFilter);
+    const userEvents = await fetchEventsFromDatabase(chatId, dateFilter);
 
 
     let eventMsg = '';
@@ -1202,12 +1241,12 @@ async function showEvent(chatId , page ,update, callback_data = null){
   
             const event = userEvents[page];
             console.log(page);
-
+        console.log(new Date(parseInt(event.eventDate)));
             eventMsg += `Event #${page + 1} of ${userEvents.length}:\n\n`;
             eventMsg += `📃 Project Name: ${event.eventName}\n` +
                         `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
                         `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
-                        `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${event.eventDate} EST` : 'NA'}` +
+                        `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'NA'}` +
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                         `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
         // }
@@ -1274,7 +1313,13 @@ async function showEvent(chatId , page ,update, callback_data = null){
             });    
         }
     } else {
+        if(dateFilter){
+            bot.sendMessage(chatId, "You haven't created yet any events for the selected range.");
+        }
+        else{
         bot.sendMessage(chatId, "You haven't created any events yet.");
+
+        }
     }
 }
 
@@ -1440,8 +1485,8 @@ async function editEvent(chatId, eventId,index) {
                         bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. MM/DD/YYYY)");
                         return;
                     }
-    
-                    value = (_date.getMonth() + 1) + "/" + _date.getFullYear() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
+                    value = _date.getTime() ; 
+                    // value = (_date.getMonth() + 1) + "/" + _date.getFullYear() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
                     // console.log(data);
                     // data = _date.toString();
                 }
