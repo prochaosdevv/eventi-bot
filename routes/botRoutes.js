@@ -724,7 +724,15 @@ async function updateData(chatId, data) {
         }
         else {
             if (_currentField == "eventLink" || _currentField == "eventTwitter" || _currentField == "communityLink") {
-                if (!isLinkValid(data)) {
+             
+                let _data = data.toLowerCase();
+                _data = _data.split("?")[0];
+                _data = _data.startsWith("https://") || _data.startsWith("http://") ? _data : "https://"+_data
+                // data = _data.toLowerCase();
+                data = data.toLowerCase().replace(_data.split("?")[0],_data)     
+                
+                console.log(data);
+                if (!isLinkValid(_data)) {
                     bot.sendMessage(chatId, "The link you shared is not valid, please share a valid link.(e.g. “https://google.com”)");
                     return;
                 }
@@ -1307,8 +1315,8 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
             inline_keyboard: [
                 linksMarkup,
                 [
-                    { text: 'Edit Event', callback_data: `/edit_${event._id}` },
-                    { text: 'Delete Event', callback_data: `/delete_${event._id}` }
+                    { text: '✏️Edit Event', callback_data: `/edit_${event._id}` },
+                    { text: '❌Delete Event', callback_data: `/delete_${event._id}` }
                 ], 
                 nav
             ],
@@ -1486,7 +1494,13 @@ async function editEvent(chatId, eventId,index) {
 
             }
             else  if (field == "eventLink" || field == "eventTwitter" || field == "communityLink") {
-                    if (!isLinkValid(value)) {
+                let _data = value.toLowerCase();
+                _data = _data.split("?")[0];
+                _data = _data.startsWith("https://") || _data.startsWith("http://") ? _data : "https://"+_data
+                // data = _data.toLowerCase();
+                value = value.toLowerCase().replace(_data.split("?")[0],_data)     
+                
+                    if (!isLinkValid(_data)) {
                         bot.sendMessage(chatId, "The link you shared is not valid, please share a valid link.(e.g. “https://google.com”)");
                         return;
                     }
