@@ -649,7 +649,7 @@ function setRemindBefore(chatId, seconds) {
             }])
         }
         _keybArray.push([{
-            text: "No, continue.",
+            text: "Save Reminders.",
             callback_data: `/continue_reminder`,
         }])
 
@@ -1552,7 +1552,7 @@ async function editEvent(chatId, eventId,index) {
                     }])
                 }
                 _keybArray.push([{
-                    text: "No, continue.",
+                    text: "Save Reminders.",
                     callback_data: `/continue_reminder`,
                 }])
         
