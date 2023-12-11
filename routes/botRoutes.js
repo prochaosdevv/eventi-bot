@@ -1465,7 +1465,7 @@ async function editEvent(chatId, eventId,index) {
         }
         else{
             _keybArray.push([{
-                text: "No, continue.",
+                text: "Save Reminders",
                 callback_data: `/continue_reminder`,
             }])
     
