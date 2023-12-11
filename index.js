@@ -7,7 +7,7 @@ connectDatabase();
 const axios = require('axios');
 
 const botRotues = require("./routes/botRoutes");
-const {checkAndSendReminders,sendReminderForSetEventDate} = require('./controllers/reminderController')
+// const {sendReminderForSetEventDate} = require('./controllers/reminderController')
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,8 +17,15 @@ app.use("/bot" , botRotues)
 
 
 // cron.schedule('*/1 * * * *', () => {
-//   checkAndSendReminders();
-// });
+cron.schedule('*/10 * * * * *', () => {
+  console.log("cron running");
+  try{
+    // botRotues.checkAndSendReminders();
+  }
+  catch(e){
+    console.log(e);
+  }
+});
 
 
 // cron.schedule('*/1 * * * *', () => {

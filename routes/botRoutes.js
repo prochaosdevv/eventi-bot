@@ -12,6 +12,7 @@ const path = require('path');
 const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo } = require('../config/constants');
 const { log } = require('console');
 const Calendar = require('telegram-inline-calendar');
+const { DateTime } = require("luxon");
 
 // const readFileAsync = util.promisify(fs.readFile);
 
@@ -1231,6 +1232,7 @@ const keyboard = {
     })
  
 }
+
 async function showEvent(chatId , page ,update, callback_data = null, dateFilter =null){
     console.log(dateFilter);
     const userEvents = await fetchEventsFromDatabase(chatId, dateFilter);
@@ -1241,12 +1243,18 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
   
             const event = userEvents[page];
             console.log(page);
+
+    
+
         console.log(new Date(parseInt(event.eventDate)));
-            eventMsg += `Event #${page + 1} of ${userEvents.length}:\n\n`;
+            eventMsg += `Launch #${page + 1} of ${userEvents.length}:\n\n`;
             eventMsg += `📃 Project Name: ${event.eventName}\n` +
                         `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
                         `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
-                        `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'NA'}` +
+                        // `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'NA'}` +
+                       `🗓️ Event Date Time: ${event.eventDate && event.eventDate !== 'false'
+                       ? ` ${DateTime.fromMillis(parseInt(event.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+                        : 'NA'}` +
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                         `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
         // }
@@ -1281,10 +1289,10 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
         let nav = [] ;
         if(userEvents.length > 1){
             if(page > 0){
-                nav.push({ text: `Prev`, callback_data: `prev_page_${page}` })
+                nav.push({ text: `Prev ⬅️`, callback_data: `prev_page_${page}` })
             }
             if(page < userEvents.length - 1){
-                nav.push({ text: `Next`, callback_data: `next_page_${page + 1}` })
+                nav.push({ text: `Next ➡️`, callback_data: `next_page_${page + 1}` })
 
             }
         }
@@ -1373,9 +1381,9 @@ const createFieldSetButtons = (event,currentPage) => {
     let navigationButtons = [];
 
     if (currentPage == 1) {
-        navigationButtons.push({ text: 'Next', callback_data: '/nextfield_'+event._id });
+        navigationButtons.push({ text: 'Next ➡️', callback_data: '/nextfield_'+event._id });
     } else if (currentPage == 2 ) {
-        navigationButtons.push({ text: 'Previous', callback_data: '/prevfield_'+event._id });
+        navigationButtons.push({ text: 'Previous ⬅️', callback_data: '/prevfield_'+event._id });
     }
 
     const inlineKeyboard = [...rowButtons, navigationButtons];
