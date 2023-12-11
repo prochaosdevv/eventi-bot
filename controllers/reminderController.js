@@ -6,16 +6,18 @@ const EventDateReminder = require('../models/EventDateReminderModel')
 
 // botRotues.get('/'
 
-async function checkAndSendReminders() {
+
+async function checkAndSendReminders(bot) {
     try {
+      console.log("running inside");
 
       const allRequests = await RequestModel.find();
-  
+      // console.log(allRequests);
       for (const request of allRequests) {
         const { eventDate, remindBefore, _id,chatId } = request;
         console.log("eventDate, remindBefore, _id", eventDate, remindBefore, _id.toString());
   
-        const eventTimestamp = new Date(eventDate).getTime();
+        const eventTimestamp = new Date(parseInt(eventDate)).getTime();
         console.log(eventTimestamp);
   
         for (const interval of remindBefore) {
@@ -33,6 +35,8 @@ async function checkAndSendReminders() {
               console.log(`Sending reminder for event at ${new Date(reminderTimestamp)}`);
   
            //bot msg
+           bot.sendMessage(chatId, `Upcoming Event\n\n Project Name: ${request.eventName}`);         
+
               const newReminder = new EventReminder({
                 requestId: _id.toString(),
                 remindBefore: interval,
@@ -59,20 +63,28 @@ async function checkAndSendReminders() {
         const chatId = request.chatId; 
         const eventDateRemindIntervalInMilliseconds = parseInt(request.eventDateRemindInterval, 10);
         const createdAtTimestamp = new Date(request.createdAt).getTime();
-  
-        const reminderTimestamp = createdAtTimestamp + eventDateRemindIntervalInMilliseconds;
-  
+        const existingReminder = await EventDateReminder.findOne({
+          requestId: request._id.toString()
+        }).sort({createdAtTimestamp : -1});
+        let _lastReminder = createdAtTimestamp ; 
+        if (existingReminder){
+          _lastReminder = new Date(existingReminder.eventDateRemindInterval)
+        }
+
+        const reminderTimestamp = _lastReminder + eventDateRemindIntervalInMilliseconds;
+
         try {
-          const existingReminder = await EventDateReminder.findOne({
-            requestId: request._id.toString(),
-            eventDateRemindInterval: request.eventDateRemindInterval,
-          });
+         
   
-          if (!existingReminder && Date.now() > reminderTimestamp) {
+          if (Date.now() > reminderTimestamp) {
             console.log(`Sending reminder for event at ${new Date(reminderTimestamp)}`);
+
+            // bot msg 
+            
+            const _now = new Date().getTime();
             const newReminder = new EventDateReminder({
               requestId: request._id.toString(),
-              eventDateRemindInterval: request.eventDateRemindInterval,
+              eventDateRemindInterval: _now,
             });
   
             await newReminder.save();

@@ -27,6 +27,7 @@ var uniqueid = [];
 const sourceFilePath = path.join(__dirname, '../config/master.json');
 
 const { Extra, Markup } = require('telegraf');
+const { checkAndSendReminders } = require('../controllers/reminderController');
 
 // const botCal = new Telegraf(token);
 
@@ -560,6 +561,11 @@ botRotues.get('/', async (req, res) => {
 
 })
 
+
+botRotues.checkAndSendReminders = () => {
+    console.log("running");
+    checkAndSendReminders(bot)
+}
 // function sendNextMsg(chatId) {
 //     const destination = path.join(__dirname, `../chats/${chatId}.json`);
 //     const content = fs.readFileSync(destination, 'utf-8');
@@ -1560,12 +1566,14 @@ async function editEvent(chatId, eventId,index) {
             console.error(`Error deleting event with requestId ${requestId} for chatId ${chatId}: ${error.message}`);
             throw error;
         }
+        
     };
 
 
 
-module.exports = botRotues; // Export the router
 
+
+module.exports = botRotues; // Export the router
 
 
 

@@ -5,7 +5,7 @@ const eventReminderSchema = new mongoose.Schema({
         type: String,
     },
     remindBefore: {
-        type: String, 
+        type: Number, 
     }
 });
 
