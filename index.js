@@ -20,7 +20,7 @@ app.use("/bot" , botRotues)
 cron.schedule('*/10 * * * * *', () => {
   console.log("cron running");
   try{
-    botRotues.checkAndSendReminders();
+    // botRotues.checkAndSendReminders();
   }
   catch(e){
     console.log(e);
