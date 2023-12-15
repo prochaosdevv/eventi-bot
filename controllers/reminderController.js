@@ -1,12 +1,18 @@
 const RequestModel = require('../models/requestsModel');
 const EventReminder = require('../models/eventReminderModel')
-const EventDateReminder = require('../models/EventDateReminderModel')
+const EventDateReminder = require('../models/EventDateReminderModel');
+const { DateTime } = require("luxon");
+ 
 
 // const bot = require('../routes/botRoutes');
 
 // botRotues.get('/'
-
-
+  const capitalizeFirstLetter = (str) => {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+    const capitalizeAllLetters = (str) => {
+      return str.toUpperCase();
+  }
 async function checkAndSendReminders(bot) {
     try {
       console.log("running inside");
@@ -15,14 +21,14 @@ async function checkAndSendReminders(bot) {
       // console.log(allRequests);
       for (const request of allRequests) {
         const { eventDate, remindBefore, _id,chatId } = request;
-        console.log("eventDate, remindBefore, _id", eventDate, remindBefore, _id.toString());
+        // console.log("eventDate, remindBefore, _id", eventDate, remindBefore, _id.toString());
   
         const eventTimestamp = new Date(parseInt(eventDate)).getTime();
-        console.log(eventTimestamp);
+        // console.log(eventTimestamp);
   
         for (const interval of remindBefore) {
           const reminderTimestamp = eventTimestamp - parseInt(interval, 10);
-          console.log("reminderTimestamp", reminderTimestamp);
+          // console.log("reminderTimestamp", reminderTimestamp);
   
           try {
             const existingReminder = await EventReminder.findOne({
@@ -31,11 +37,64 @@ async function checkAndSendReminders(bot) {
             });
   
             if (!existingReminder && reminderTimestamp <= Date.now()) {
-              console.log("date.now", Date.now());
+              // console.log("date.now", Date.now());
               console.log(`Sending reminder for event at ${new Date(reminderTimestamp)}`);
   
            //bot msg
-           bot.sendMessage(chatId, `Upcoming Event\n\n Project Name: ${request.eventName}`);         
+           let _text = "🚨⚠️ LAUNCH REMINDER ⚠️🚨\n\n" ; 
+           _text += `📃 Project Name: ${request.eventName}\n` +
+           `🔗 Project Chain: ${capitalizeAllLetters(request.eventChain)}\n` +
+           `🔁 Platform: ${capitalizeFirstLetter(request.eventPad)}\n` ;
+           if((request?.ido)?.toLowerCase() == "yes"){
+            _text += `🚀 Private Sale: ${((request.ido).toUpperCase())}\n`;
+            _text += `📝 Notes: ${(capitalizeFirstLetter(request.eventNotes))}\n`;
+               _text += `📆 IDO Date: ${request.idoDate ? `${new Date(request.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+           }
+           else{
+            _text += `🚀 Private Sale: No\n`;
+           }
+           // `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'NA'}` +
+           _text +=    `🗓️ Event Date Time: ${request.eventDate && request.eventDate !== 'false'
+          ? ` ${DateTime.fromMillis(parseInt(request.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+           : 'NA'}` ;
+          //  `\n${request.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
+          //  `${!request.eventDate  || request.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${request.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
+
+           let linksMarkup = [];
+        if (request.eventLink &&  request.eventLink != 'false') {
+            linksMarkup.push({
+                text: "💻Website",
+                url: request.eventLink,
+            });
+        }
+        if (request.eventTwitter &&  request.eventTwitter != 'false') {
+            linksMarkup.push({
+                text: "🐦Twitter",
+                url: request.eventTwitter
+            })
+        }
+        if (request.communityLink &&  request.communityLink != 'false' ) {
+            let communityText = '👥Discord';
+            let _communityLink = request.communityLink.toLowerCase();
+            if (_communityLink.includes("t.me") || _communityLink.includes("telegram")) {
+                communityText = '👥Telegram ';
+            }
+            linksMarkup.push({
+                text: communityText,
+                url: request.communityLink
+    
+            })
+        }
+        const keyboard = {
+          inline_keyboard: [
+              linksMarkup,             
+          ],
+      }; 
+
+           bot.sendMessage(chatId, _text , {
+            parse_mode: 'markdown',
+            reply_markup: keyboard,
+        });   
 
               const newReminder = new EventReminder({
                 requestId: _id.toString(),

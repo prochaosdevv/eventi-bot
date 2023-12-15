@@ -38,9 +38,11 @@ const nextField = {
     "eventPad": "eventLink",
     "eventLink": "eventTwitter",
     "eventTwitter": "communityLink",
-    "communityLink": "eventDate",
+    "communityLink": "ido", 
+    "ido" : "eventNotes",
+    "eventNotes" : "idoDate",
+    "idoDate" : "eventDate",
     "eventDate": "remindBefore",
-    // "eventTime": "remindBefore", 
     "remindBefore": "eventDateRemindInterval",
     "eventDateRemindInterval": "final",
 }
@@ -129,7 +131,65 @@ const communityLinkMarkup = {
 
 };
 
-const eventDateMsg = `Great! When is this event happening? Please enter a date and time (MM/DD/YYYY HH:MM) EST:`;
+  
+ 
+const idoMsg = `Is there an IDO or private sale for this launch?`;
+ 
+const idoMarkup = {
+    "reply_markup": {
+        "inline_keyboard": [
+            [
+                {
+                    text: "Yes.",
+                    callback_data: "/ido_yes",
+
+                },
+                {
+                    text: "No.",
+                    callback_data: "/ido_no",
+
+                }
+            ]
+        ]
+    }, parse_mode: 'html'
+};
+
+const idoDateMsg = `Awesome! When is this IDO/Private Sale happening? Please enter a date and time (MM/DD/YYYY HH:MM). Please note default timezone is EST.`;
+ 
+const idoDateMarkup = {
+    "reply_markup": {
+        "inline_keyboard": [
+            [
+                {
+                    text: "This IDO/Private Sale doesn't have any date yet.",
+                    callback_data: "/noidodate",
+
+                }
+            ]
+        ]
+    }, parse_mode: 'html'
+};
+
+
+
+const eventNotesMsg = `Do you have any notes for this launch that you don't want to forget?`;
+ 
+const eventNotesMarkup = {
+    "reply_markup": {
+        "inline_keyboard": [
+            [
+                {
+                    text: "No Notes.",
+                    callback_data: "/nonotes",
+
+                }
+            ]
+        ]
+    }, parse_mode: 'html'
+};
+//
+
+const eventDateMsg = `Great! When is this event happening? Please enter a date and time (MM/DD/YYYY HH:MM). Please note default timezone is EST.`;
 // const eventDateMsg = `Great! When is this event happening? Please enter a date and time (DD/MM/YYYY HH:MM):`;
 
 const eventDateMarkup = {
@@ -206,7 +266,10 @@ const nextMsg = {
     "eventPad": eventLinkMsg,
     "eventLink": eventTwitterMsg,
     "eventTwitter": communityLinkMsg,
-    "communityLink": eventDateMsg,
+    "communityLink": idoMsg,
+    "ido" : eventNotesMsg,
+    "eventNotes" : idoDateMsg,
+    "idoDate" : eventDateMsg,
     "eventDate": remindBeforeMsg,
     // "eventTime": remindBeforeMsg,
     "remindBefore": eventDateRemindIntervalMsg,
@@ -219,7 +282,10 @@ const nextMmarkup = {
     "eventPad": eventLinkMarkup,
     "eventLink": eventTwitterMarkup,
     "eventTwitter": communityLinkMarkup,
-    "communityLink": eventDateMarkup,
+    "communityLink": idoMarkup,
+    "ido" : eventNotesMarkup,
+    "eventNotes" : idoDateMarkup,
+    "idoDate" : eventDateMarkup,
     "eventDate": remindBeforeMsgMarkup,
     // "eventTime": remindBeforeMsgMarkup,
     "remindBefore": eventDateRemindIntervalMarkup,
@@ -315,7 +381,7 @@ botRotues.get('/', async (req, res) => {
             if (callbackQuery.data == "/nolink") {
                 if(updateVariable[chatId]){
                 updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
-                return
+                return;
                 }
                 bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
                     inline_keyboard: [[]]
@@ -327,6 +393,40 @@ botRotues.get('/', async (req, res) => {
                 // sendNextMsg(chatId)
                 moveForward(chatId, callbackQuery.message);
 
+            }
+
+            if (callbackQuery.data == "/ido_no") {
+                if(updateVariable[chatId]){
+                updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
+                return;
+                }
+                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                    inline_keyboard: [[]]
+                })
+                    , {
+                        chat_id: chatId,
+                        message_id: callbackQuery.message.message_id
+                    })
+                // sendNextMsg(chatId)
+                // moveForward(chatId, callbackQuery.message);
+                updateData(chatId, "No")
+            }
+
+            if (callbackQuery.data == "/ido_yes") {
+                if(updateVariable[chatId]){
+                updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
+                return;
+                }
+                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                    inline_keyboard: [[]]
+                })
+                    , {
+                        chat_id: chatId,
+                        message_id: callbackQuery.message.message_id
+                    })
+                // sendNextMsg(chatId)
+                // moveForward(chatId, callbackQuery.message);
+                updateData(chatId, "Yes")
             }
 
             if (callbackQuery.data == "/continue_reminder") {
@@ -349,6 +449,30 @@ botRotues.get('/', async (req, res) => {
                     })
 
             }
+            if (callbackQuery.data == "/nonotes") {
+                moveForward(chatId);
+                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                    inline_keyboard: [[]]
+                })
+                    , {
+                        chat_id: chatId,
+                        message_id: callbackQuery.message.message_id
+                    })
+
+            }
+            if (callbackQuery.data == "/noidodate") {
+                moveForward(chatId);
+                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                    inline_keyboard: [[]]
+                })
+                    , {
+                        chat_id: chatId,
+                        message_id: callbackQuery.message.message_id
+                    })
+
+            }
+
+            
 
             if (callbackQuery.data.startsWith("remindBefore_")) {
                 console.log(callbackQuery.data);
@@ -493,6 +617,33 @@ botRotues.get('/', async (req, res) => {
                 }
                 
             } 
+
+            if (callbackQuery.data.startsWith('/canceledit_')) {
+                const eventId = callbackQuery.data.split('_')[1];
+                console.log(eventId);
+
+                try {
+                const userEvents = await fetchEventsFromDatabase(chatId, null);
+                let page = 0 
+                userEvents.map(async (v,i) => {
+                    if(v._id == eventId){
+                        page = i                      
+                        await showEvent(chatId , page ,false)                    
+                        return;
+                    }
+
+                })
+            } catch (error) { 
+                console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
+                bot.sendMessage(chatId, 'Error fetching events. Please try again later.');
+            }
+            
+               
+               
+                
+            } 
+
+            
         
             if (callbackQuery.data.startsWith('/editfield_')) {
                 console.log("here")
@@ -543,7 +694,7 @@ botRotues.get('/', async (req, res) => {
         const text = msg.text;
         if (!uniqueid.includes(chatId + msg.message_id)) {
 
-            if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder"  && text !== "/listreminder"  && text !== "/list_launches_next_7days" && text !== "/list_launches_next_month") {
+            if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder"  && text !== "/listreminder"  && text !== "/list_launches_next_7days" && text !== "/list_launches_next_month" && text != "/ido_yes" && text != "/ido_no") {
                 if(updateVariable[chatId]){
                     updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , text)
                 }
@@ -747,11 +898,19 @@ async function updateData(chatId, data) {
                     // bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. DD/MM/YYYY)");
                     return;
                 }
-                data = _date.getTime() 
-           
-                // data = (_date.getMonth() + 1) + "/" + _date.getDate() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
-                console.log(data);
-                // data = _date.toString();
+                data = _date.getTime()   
+            }
+
+            if (_currentField == "idoDate") {
+                let _date = new Date(data);
+                let _cdate = new Date();
+                console.log(_date);
+                if (_date == "Invalid Date" || _date < _cdate) {
+                    bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. MM/DD/YYYY)");
+                    // bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. DD/MM/YYYY)");
+                    return;
+                }
+                data = _date.getTime()   
             }
             _parseContent[_currentField] = data;
         }
@@ -836,6 +995,14 @@ function sendFinal(chatId, _parseContent) {
     text += `📃 Project Name: ${_parseContent.eventName}\n`;
     text += `🔗 Project Chain: ${capitalizeAllLetters(_parseContent.eventChain)}\n`;
     text += `🔁 Platform: ${capitalizeFirstLetter(_parseContent.eventPad)}\n`;
+    if((_parseContent?.ido)?.toLowerCase() == "yes"){
+        text += `🚀 Private Sale: ${((_parseContent.ido).toUpperCase())}\n`;
+        text += `📝 Notes: ${(capitalizeFirstLetter(_parseContent.eventNotes))}\n`;
+        text += `📆 IDO Date: ${_parseContent.idoDate ? `${new Date(_parseContent.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+    }
+    else{
+        text += `🚀 Private Sale: No\n`;
+    }
     text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${new Date(_parseContent.eventDate).toLocaleString()} EST` : 'NA'}\n`;
     //  text += `⏰ Event Time: ${_parseContent.eventTime ? _parseContent.eventTime : 'NA'}\n`;
     text += _reminder.join('\n');
@@ -1201,8 +1368,16 @@ async function getEvents(chatId ,requestId){
     let eventMsg = `Event details:\n\n`;
     eventMsg += `📃 Project Name: ${event.eventName}\n` +
                 `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
-                `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
-                `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${new Date(event.eventDate).toLocaleString()} EST` : 'NA'}` +
+                `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
+    if((event?.ido)?.toLowerCase() == "yes"){
+    eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
+        eventMsg += `📝 Notes: ${(capitalizeFirstLetter(event.eventNotes))}\n`;
+        eventMsg += `📆 IDO Date: ${event.idoDate ? `${new Date(event.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+    }
+    else{
+        eventMsg += `🚀 Private Sale: No\n`;
+    }
+    eventMsg +=         `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${new Date(event.eventDate).toLocaleString()} EST` : 'NA'}` +
                 `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                 `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
 // }
@@ -1264,9 +1439,17 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
             eventMsg += `Launch #${page + 1} of ${userEvents.length}:\n\n`;
             eventMsg += `📃 Project Name: ${event.eventName}\n` +
                         `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
-                        `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` +
+                        `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
+                        if((event?.ido)?.toLowerCase() == "yes"){
+                        eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
+                            eventMsg += `📝 Notes: ${(capitalizeFirstLetter(event.eventNotes))}\n`;
+                            eventMsg += `📆 IDO Date: ${event.idoDate ? `${new Date(event.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+                        }
+                        else{
+                            eventMsg += `🚀 Private Sale: No\n`;
+                        }
                         // `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'NA'}` +
-                       `🗓️ Event Date Time: ${event.eventDate && event.eventDate !== 'false'
+                        eventMsg +=    `🗓️ Event Date Time: ${event.eventDate && event.eventDate !== 'false'
                        ? ` ${DateTime.fromMillis(parseInt(event.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
                         : 'NA'}` +
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
@@ -1395,10 +1578,11 @@ const createFieldSetButtons = (event,currentPage) => {
     let navigationButtons = [];
 
     if (currentPage == 1) {
-        navigationButtons.push({ text: 'Next ➡️', callback_data: '/nextfield_'+event._id });
+        navigationButtons.push({ text: '➡️ Next', callback_data: '/nextfield_'+event._id });
     } else if (currentPage == 2 ) {
-        navigationButtons.push({ text: 'Previous ⬅️', callback_data: '/prevfield_'+event._id });
+        navigationButtons.push({ text: '⬅️ Previous', callback_data: '/prevfield_'+event._id });
     }
+    navigationButtons.push({ text: 'Cancel ❌', callback_data: '/canceledit_'+event._id });
 
     const inlineKeyboard = [...rowButtons, navigationButtons];
 
@@ -1518,7 +1702,19 @@ async function editEvent(chatId, eventId,index) {
                     // console.log(data);
                     // data = _date.toString();
                 }
-
+                else  if (field == "idoDate") {
+                    let _date = new Date(value);
+                    let _cdate = new Date();
+                    // console.log(_date);
+                    if (_date == "Invalid Date" || _date < _cdate) {
+                        bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. MM/DD/YYYY)");
+                        return;
+                    }
+                    value = _date.getTime() ; 
+                    // value = (_date.getMonth() + 1) + "/" + _date.getFullYear() + "/" + _date.getFullYear() + " " + (_date.getHours() < 10 ? `0${_date.getHours()}` : _date.getHours()) + ":" + (_date.getMinutes() < 10 ? `0${_date.getMinutes()}` : _date.getMinutes());
+                    // console.log(data);
+                    // data = _date.toString();
+                }
             const updateEvent = await RequestModel.findOneAndUpdate( { _id : requestId},
                 { $set: { [field]: value}},
                 { new: true } );
