@@ -48,19 +48,19 @@ async function checkAndSendReminders(bot) {
            if((request?.ido)?.toLowerCase() == "yes"){
             _text += `🚀 Private Sale: ${((request.ido).toUpperCase())}\n`;
             
-               _text += `📆 IDO Date: ${request.idoDate ? `${DateTime.fromMillis(parseInt(request.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
+               _text += `📆 IDO Date: ${request.idoDate && request.idoDate !== 'false'? `${DateTime.fromMillis(parseInt(request.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'Not Set'}\n`;        
            }
            else{
             _text += `🚀 Private Sale: No\n`;
            }
-           // `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'NA'}` +
+           // `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'Not Set'}` +
            _text +=    `🗓️ Event Date Time: ${request.eventDate && request.eventDate !== 'false'
           ? ` ${DateTime.fromMillis(parseInt(request.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
-           : 'NA'}` ;
+           : 'Not Set'}` ;
           //  `\n${request.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
           //  `${!request.eventDate  || request.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${request.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
-          _text += `\n📝 Notes: ${(request.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(request.eventNotes))}\n`;
-          _text += `📑 Contract: ${(request.eventContract == 'false' ? "NA" : request.eventContract)}\n`;
+          _text += `\n📝 Notes: ${(request.eventNotes == 'false' ? "Not Set" : capitalizeFirstLetter(request.eventNotes))}\n`;
+          _text += `📑 Contract: ${(request.eventContract == 'false' ? "Not Set" : request.eventContract)}\n`;
            let linksMarkup = [];
         if (request.eventLink &&  request.eventLink != 'false') {
             linksMarkup.push({
@@ -115,10 +115,10 @@ async function checkAndSendReminders(bot) {
     }
   }
   
-  async function sendReminderForSetEventDate() {
+  async function sendReminderForSetEventDate(bot) {
     try {
       const requests = await RequestModel.find({ eventDate: "false" });
-  
+      console.log(requests.length);
       requests.forEach(async (request) => {
         const chatId = request.chatId; 
         const eventDateRemindIntervalInMilliseconds = parseInt(request.eventDateRemindInterval, 10);
@@ -130,14 +130,71 @@ async function checkAndSendReminders(bot) {
         if (existingReminder){
           _lastReminder = new Date(existingReminder.eventDateRemindInterval)
         }
-
+        // _lastReminder = new Date().getTime() - (4 * 86400000)
         const reminderTimestamp = _lastReminder + eventDateRemindIntervalInMilliseconds;
-
+        console.log(reminderTimestamp);
         try {
          
   
           if (Date.now() > reminderTimestamp) {
             console.log(`Sending reminder for event at ${new Date(reminderTimestamp)}`);
+            let _text = "🚨⚠️ LAUNCH REMINDER ⚠️🚨\n\n" ; 
+            _text += `📃 Project Name: ${request.eventName}\n` +
+            `🔗 Project Chain: ${capitalizeAllLetters(request.eventChain)}\n` +
+            `🔁 Platform: ${capitalizeFirstLetter(request.eventPad)}\n` ;
+            if((request?.ido)?.toLowerCase() == "yes"){
+             _text += `🚀 Private Sale: ${((request.ido).toUpperCase())}\n`;
+             
+                _text += `📆 IDO Date: ${request.idoDate && request.idoDate !== 'false' ? `${DateTime.fromMillis(parseInt(request.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'Not Set'}\n`;        
+            }
+            else{
+             _text += `🚀 Private Sale: No\n`;
+            }
+            // `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'Not Set'}` +
+            _text +=    `🗓️ Event Date Time: ${request.eventDate && request.eventDate !== 'false'
+           ? ` ${DateTime.fromMillis(parseInt(request.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+            : 'Not Set'}` ;
+           //  `\n${request.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
+           //  `${!request.eventDate  || request.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${request.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
+           _text += `\n📝 Notes: ${(request.eventNotes == 'false' ? "Not Set" : capitalizeFirstLetter(request.eventNotes))}\n`;
+           _text += `📑 Contract: ${(request.eventContract == 'false' ? "Not Set" : request.eventContract)}\n`;
+            let linksMarkup = [];
+         if (request.eventLink &&  request.eventLink != 'false') {
+             linksMarkup.push({
+                 text: "💻Website",
+                 url: request.eventLink,
+             });
+         }
+         if (request.eventTwitter &&  request.eventTwitter != 'false') {
+             linksMarkup.push({
+                 text: "🐦Twitter",
+                 url: request.eventTwitter
+             })
+         }
+         if (request.communityLink &&  request.communityLink != 'false' ) {
+             let communityText = '👥Discord';
+             let _communityLink = request.communityLink.toLowerCase();
+             if (_communityLink.includes("t.me") || _communityLink.includes("telegram")) {
+                 communityText = '👥Telegram ';
+             }
+             linksMarkup.push({
+                 text: communityText,
+                 url: request.communityLink
+     
+             })
+         }
+         const keyboard = {
+           inline_keyboard: [
+               linksMarkup,  
+               [{ text: 'Set Date', callback_data: `/editfield_eventDate_${request._id}` }]           
+           ],
+       }; 
+ 
+            bot.sendMessage(chatId, _text , {
+             parse_mode: 'markdown',
+             reply_markup: keyboard,
+         });   
+
 
             // bot msg 
             

@@ -19,7 +19,7 @@ console.log(`https://api.telegram.org/bot${process.env.TG_BOT_SECRET}/setWebhook
 
 // cron.schedule('*/1 * * * *', () => {
 cron.schedule('*/10 * * * * *', () => {
-  console.log("cron running");
+  console.log("cron running 1");
   try{
     botRotues.checkAndSendReminders();
   }
@@ -28,7 +28,15 @@ cron.schedule('*/10 * * * * *', () => {
   }
 });
 
-
+cron.schedule('*/10 * * * * *', () => {
+  console.log("cron running 2");
+  try{
+    botRotues.sendReminderForSetEventDate();
+  }
+  catch(e){
+    console.log(e);
+  }
+});
 // cron.schedule('*/1 * * * *', () => {
 //   sendReminderForSetEventDate();
 // });

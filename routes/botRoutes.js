@@ -28,7 +28,7 @@ var uniqueid = [];
 const sourceFilePath = path.join(__dirname, '../config/master.json');
 
 const { Extra, Markup } = require('telegraf');
-const { checkAndSendReminders } = require('../controllers/reminderController');
+const { checkAndSendReminders, sendReminderForSetEventDate } = require('../controllers/reminderController');
 
 // const botCal = new Telegraf(token);
 
@@ -59,6 +59,8 @@ const DATE_REMINDER_TEXT = {
     [ONE_DAY]: "Every Day",
     [ONE_HOUR]: "Every Hour"
 }
+
+const DATE_REMINDER_INTERVAL = 3600000
 
 
 const eventNameMsg = `Excellent! To begin, kindly share the name of the project for which you'd like to set the reminder.`;
@@ -774,6 +776,11 @@ botRotues.checkAndSendReminders = () => {
     console.log("running");
     checkAndSendReminders(bot)
 }
+
+botRotues.sendReminderForSetEventDate = () => {
+    console.log("running");
+    sendReminderForSetEventDate(bot)
+}
 // function sendNextMsg(chatId) {
 //     const destination = path.join(__dirname, `../chats/${chatId}.json`);
 //     const content = fs.readFileSync(destination, 'utf-8');
@@ -941,7 +948,7 @@ async function updateData(chatId, data) {
     }
     else {
         if (_currentField == "eventDateRemindInterval") {
-            _parseContent[_currentField] = data * 86400000;
+            _parseContent[_currentField] = data * DATE_REMINDER_INTERVAL;
         }
         else {
             if (_currentField == "eventLink" || _currentField == "eventTwitter" || _currentField == "communityLink") {
@@ -1453,7 +1460,7 @@ async function getEvents(chatId ,requestId){
                 `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
     if((event?.ido)?.toLowerCase() == "yes"){
     eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
-          eventMsg += `📆 IDO Date Time: ${event.idoDate ? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
+          eventMsg += `📆 IDO Date Time: ${event.idoDate && event.idoDate != 'false'? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
     }
     else{
         eventMsg += `🚀 Private Sale: No\n`;
@@ -1527,7 +1534,7 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
                         `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
                         if((event?.ido)?.toLowerCase() == "yes"){
                         eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
-                            eventMsg += `📆 IDO Date Time: ${event.idoDate ? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
+                            eventMsg += `📆 IDO Date Time: ${event.idoDate && event.idoDate !== 'false' ? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
                         }
                         else{
                             eventMsg += `🚀 Private Sale: No\n`;
@@ -1762,7 +1769,7 @@ async function editEvent(chatId, eventId,index) {
         if(getEvent){
             // console.log("chatId", chatId, "requestId", requestId)
             if (field == "eventDateRemindInterval") {
-                value = value * 86400000;
+                value = value * DATE_REMINDER_INTERVAL;
             }
             else if (field == "remindBefore"){
                 value = value ? [value, ...getEvent.remindBefore] : getEvent.remindBefore ;
