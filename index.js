@@ -14,6 +14,7 @@ const port = process.env.PORT || 3000;
 
 app.use("/bot" , botRotues)
 
+console.log(`https://api.telegram.org/bot${process.env.TG_BOT_SECRET}/setWebhook?url=${process.env.URL}`);
 
 
 // cron.schedule('*/1 * * * *', () => {

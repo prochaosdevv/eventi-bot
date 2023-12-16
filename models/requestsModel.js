@@ -41,6 +41,10 @@ const requestSchema = new mongoose.Schema({
         type: String,
         default: false,
     },
+    eventContract: {
+        type: String,
+        default: false,
+    },
     idoDate: {
         type: String,
         default: false,

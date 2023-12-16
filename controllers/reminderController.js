@@ -59,7 +59,8 @@ async function checkAndSendReminders(bot) {
            : 'NA'}` ;
           //  `\n${request.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
           //  `${!request.eventDate  || request.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${request.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
-
+          _text += `📝 Notes: ${(request.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(request.eventNotes))}\n`;
+          _text += `📑 Contract: ${(request.eventContract == 'false' ? "NA" : request.eventContract)}\n`;
            let linksMarkup = [];
         if (request.eventLink &&  request.eventLink != 'false') {
             linksMarkup.push({

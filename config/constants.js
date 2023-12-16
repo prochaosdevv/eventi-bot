@@ -6,7 +6,10 @@ exports.fieldMarkupsOne = {
     "eventName": "Project Name",
     "eventChain": "Project Chain",
     "eventPad" :"Platform",
-    "eventDate": "Event Date Time"
+    "eventDate": "Event Date Time",
+    "idoDate": "IDO Date Time",
+    "eventNotes": "Notes",
+    "eventContract": "Contract Address"
     
 };
 

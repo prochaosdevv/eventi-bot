@@ -10,6 +10,9 @@
     "eventDate":false,
     "eventTime":false,
     "remindBefore": false,
+    "eventNotes": false,
+    "eventContract": false,
+    "ido": false,
     "eventDateRemindInterval": false,
     "currentField": false        
 }

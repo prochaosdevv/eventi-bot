@@ -13,6 +13,7 @@ const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo } = requi
 const { log } = require('console');
 const Calendar = require('telegram-inline-calendar');
 const { DateTime } = require("luxon");
+const ethUtil = require('ethereumjs-util');
 
 // const readFileAsync = util.promisify(fs.readFile);
 
@@ -39,11 +40,12 @@ const nextField = {
     "eventLink": "eventTwitter",
     "eventTwitter": "communityLink",
     "communityLink": "ido", 
-    "ido" : "eventNotes",
-    "eventNotes" : "idoDate",
+    "ido" : "idoDate",
     "idoDate" : "eventDate",
     "eventDate": "remindBefore",
-    "remindBefore": "eventDateRemindInterval",
+    "remindBefore": "eventNotes",
+    "eventNotes" : "eventContract",
+    "eventContract" : "eventDateRemindInterval",
     "eventDateRemindInterval": "final",
 }
 
@@ -172,6 +174,23 @@ const idoDateMarkup = {
 
 
 
+
+const eventContractMsg = `Enter a contract address for this project if you have one.`;
+ 
+const eventContractMarkup = {
+    "reply_markup": {
+        "inline_keyboard": [
+            [
+                {
+                    text: "No Contract.",
+                    callback_data: "/nocontract",
+
+                }
+            ]
+        ]
+    }, parse_mode: 'html'
+};
+
 const eventNotesMsg = `Do you have any notes for this launch that you don't want to forget?`;
  
 const eventNotesMarkup = {
@@ -267,12 +286,13 @@ const nextMsg = {
     "eventLink": eventTwitterMsg,
     "eventTwitter": communityLinkMsg,
     "communityLink": idoMsg,
-    "ido" : eventNotesMsg,
-    "eventNotes" : idoDateMsg,
+    "ido" : idoDateMsg,
     "idoDate" : eventDateMsg,
     "eventDate": remindBeforeMsg,
     // "eventTime": remindBeforeMsg,
-    "remindBefore": eventDateRemindIntervalMsg,
+    "remindBefore": eventNotesMsg,
+    "eventNotes" : eventContractMsg,    
+    "eventContract" : eventDateRemindIntervalMsg,    
     "eventDateRemindInterval": null
 }
 
@@ -283,12 +303,13 @@ const nextMmarkup = {
     "eventLink": eventTwitterMarkup,
     "eventTwitter": communityLinkMarkup,
     "communityLink": idoMarkup,
-    "ido" : eventNotesMarkup,
-    "eventNotes" : idoDateMarkup,
+    "ido" : idoDateMarkup,
     "idoDate" : eventDateMarkup,
     "eventDate": remindBeforeMsgMarkup,
-    // "eventTime": remindBeforeMsgMarkup,
-    "remindBefore": eventDateRemindIntervalMarkup,
+    // "eventTime": remindBeforeMsgMarkup    
+    "remindBefore": eventNotesMarkup,
+    "eventNotes" : eventContractMarkup,
+    "eventContract" : eventDateRemindIntervalMarkup,
     "eventDateRemindInterval": null
 }
 
@@ -301,8 +322,11 @@ const editNextMsg = {
     "eventLink": eventLinkMsg,
     "eventTwitter": eventTwitterMsg,
     "communityLink": communityLinkMsg,
+    "idoDate": idoDateMsg,
     "eventDate": eventDateMsg,
     "remindBefore": remindBeforeMsg,
+    "eventNotes" : eventNotesMsg,
+    "eventContract" : eventContractMsg,
     "eventDateRemindInterval": eventDateRemindIntervalMsg
 }
 
@@ -313,8 +337,11 @@ const editNextMarkup = {
     "eventLink": eventLinkMarkup,
     "eventTwitter": eventTwitterMarkup,
     "communityLink": communityLinkMarkup,
+    "idoDate": idoDateMarkup,
     "eventDate": eventDateMarkup,
     "remindBefore": remindBeforeMsgMarkup,
+    "eventNotes" : eventNotesMarkup,
+    "eventContract" : eventContractMarkup,
     "eventDateRemindInterval": eventDateRemindIntervalMarkup
 }
 
@@ -383,13 +410,14 @@ botRotues.get('/', async (req, res) => {
                 updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
                 return;
                 }
-                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
-                    inline_keyboard: [[]]
-                })
-                    , {
-                        chat_id: chatId,
-                        message_id: callbackQuery.message.message_id
-                    })
+                // bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                //     inline_keyboard: [[]]
+                // })
+                //     , {
+                //         chat_id: chatId,
+                //         message_id: callbackQuery.message.message_id
+                //     })
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
                 // sendNextMsg(chatId)
                 moveForward(chatId, callbackQuery.message);
 
@@ -400,16 +428,21 @@ botRotues.get('/', async (req, res) => {
                 updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
                 return;
                 }
-                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
-                    inline_keyboard: [[]]
-                })
-                    , {
-                        chat_id: chatId,
-                        message_id: callbackQuery.message.message_id
-                    })
+                // bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                //     inline_keyboard: [[]]
+                // })
+                //     , {
+                //         chat_id: chatId,
+                //         message_id: callbackQuery.message.message_id
+                //     })
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+
+
+                    skipField(chatId)
+                    bot.sendMessage(chatId, eventDateMsg, eventDateMarkup);
                 // sendNextMsg(chatId)
                 // moveForward(chatId, callbackQuery.message);
-                updateData(chatId, "No")
+                // updateData(chatId, "No")
             }
 
             if (callbackQuery.data == "/ido_yes") {
@@ -417,13 +450,15 @@ botRotues.get('/', async (req, res) => {
                 updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
                 return;
                 }
-                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
-                    inline_keyboard: [[]]
-                })
-                    , {
-                        chat_id: chatId,
-                        message_id: callbackQuery.message.message_id
-                    })
+                // bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                //     inline_keyboard: [[]]
+                // })
+                //     , {
+                //         chat_id: chatId,
+                //         message_id: callbackQuery.message.message_id
+                //     })
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+
                 // sendNextMsg(chatId)
                 // moveForward(chatId, callbackQuery.message);
                 updateData(chatId, "Yes")
@@ -434,41 +469,63 @@ botRotues.get('/', async (req, res) => {
                     updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false , true)
                     return;
                     }
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+
                 moveForward(chatId);
 
             }
 
             if (callbackQuery.data == "/nodate") {
                 moveForward(chatId);
-                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
-                    inline_keyboard: [[]]
-                })
-                    , {
-                        chat_id: chatId,
-                        message_id: callbackQuery.message.message_id
-                    })
+                // bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                //     inline_keyboard: [[]]
+                // })
+                //     , {
+                //         chat_id: chatId,
+                //         message_id: callbackQuery.message.message_id
+                //     })
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+
+
+            }
+            
+            if (callbackQuery.data == "/nocontract") {
+                moveForward(chatId);
+                // bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                //     inline_keyboard: [[]]
+                // })
+                //     , {
+                //         chat_id: chatId,
+                //         message_id: callbackQuery.message.message_id
+                //     })
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+
 
             }
             if (callbackQuery.data == "/nonotes") {
                 moveForward(chatId);
-                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
-                    inline_keyboard: [[]]
-                })
-                    , {
-                        chat_id: chatId,
-                        message_id: callbackQuery.message.message_id
-                    })
+                // bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                //     inline_keyboard: [[]]
+                // })
+                //     , {
+                //         chat_id: chatId,
+                //         message_id: callbackQuery.message.message_id
+                //     })
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+
 
             }
             if (callbackQuery.data == "/noidodate") {
                 moveForward(chatId);
-                bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
-                    inline_keyboard: [[]]
-                })
-                    , {
-                        chat_id: chatId,
-                        message_id: callbackQuery.message.message_id
-                    })
+                // bot.editMessageReplyMarkup(JSON.stringify({ // Added JSON.stringify()
+                //     inline_keyboard: [[]]
+                // })
+                //     , {
+                //         chat_id: chatId,
+                //         message_id: callbackQuery.message.message_id
+                //     })
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+
 
             }
 
@@ -731,6 +788,19 @@ botRotues.checkAndSendReminders = () => {
 // }
 // Utils Fnction
 
+function skipField(chatId, msg = null) {
+    const destination = path.join(__dirname, `../chats/${chatId}.json`);
+    const content = fs.readFileSync(destination, 'utf-8');
+    let _parseContent = JSON.parse(content)
+    let _currentField = _parseContent.currentField;    
+    _parseContent.currentField = nextField[nextField[_currentField]]; 
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.writeFileSync(destination, JSON.stringify(_parseContent));
+
+
+
+}
+
 function moveForward(chatId, msg = null) {
     const destination = path.join(__dirname, `../chats/${chatId}.json`);
     const content = fs.readFileSync(destination, 'utf-8');
@@ -888,7 +958,16 @@ async function updateData(chatId, data) {
                     return;
                 }
             }
-
+            if (_currentField == "eventContract") {
+                let _valid = isValidEthereumAddress(data);
+                    console.log(_valid);
+                if (!_valid) {
+                    bot.sendMessage(chatId, "The address you entered is not valid. Please re-enter correct address");
+                    // bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. DD/MM/YYYY)");
+                    return;
+                }
+                // data = _date.getTime()   
+            }
             if (_currentField == "eventDate") {
                 let _date = new Date(data);
                 let _cdate = new Date();
@@ -995,19 +1074,22 @@ function sendFinal(chatId, _parseContent) {
     text += `📃 Project Name: ${_parseContent.eventName}\n`;
     text += `🔗 Project Chain: ${capitalizeAllLetters(_parseContent.eventChain)}\n`;
     text += `🔁 Platform: ${capitalizeFirstLetter(_parseContent.eventPad)}\n`;
-    if((_parseContent?.ido)?.toLowerCase() == "yes"){
+    if(_parseContent?.ido){
         text += `🚀 Private Sale: ${((_parseContent.ido).toUpperCase())}\n`;
-        text += `📝 Notes: ${(capitalizeFirstLetter(_parseContent.eventNotes))}\n`;
-        text += `📆 IDO Date: ${_parseContent.idoDate ? `${new Date(_parseContent.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+        text += `📆 IDO Date Time: ${_parseContent.idoDate ? `${DateTime.fromMillis(parseInt(_parseContent.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
     }
     else{
         text += `🚀 Private Sale: No\n`;
     }
-    text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${new Date(_parseContent.eventDate).toLocaleString()} EST` : 'NA'}\n`;
+    text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${DateTime.fromMillis(parseInt(_parseContent.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;
     //  text += `⏰ Event Time: ${_parseContent.eventTime ? _parseContent.eventTime : 'NA'}\n`;
     text += _reminder.join('\n');
     text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
+    // console.log(_parseContent.eventNotes);
+    text += `\n📝 Notes: ${(_parseContent.eventNotes == false ? "NA" : capitalizeFirstLetter(_parseContent.eventNotes))}\n`;
+    text += `📑 Contract: ${(_parseContent.eventContract == false ? "NA" : _parseContent.eventContract)}\n\n`;
 
+    console.log(text);
 
     // console.log(text);
 
@@ -1371,15 +1453,17 @@ async function getEvents(chatId ,requestId){
                 `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
     if((event?.ido)?.toLowerCase() == "yes"){
     eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
-        eventMsg += `📝 Notes: ${(capitalizeFirstLetter(event.eventNotes))}\n`;
-        eventMsg += `📆 IDO Date: ${event.idoDate ? `${new Date(event.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+          eventMsg += `📆 IDO Date Time: ${event.idoDate ? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
     }
     else{
         eventMsg += `🚀 Private Sale: No\n`;
     }
-    eventMsg +=         `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${new Date(event.eventDate).toLocaleString()} EST` : 'NA'}` +
+    eventMsg +=         `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${DateTime.fromMillis(parseInt(_parseContent.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}` +
                 `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
-                `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
+                `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
+                eventMsg += `📝 Notes: ${(event.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
+                eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : event.eventContract)}\n\n`;
+            
 // }
 
 let linksMarkup = [];
@@ -1435,15 +1519,15 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
 
     
 
-        console.log(new Date(parseInt(event.eventDate)));
+        console.log(new Date(parseInt(event.idoDate)));
+
             eventMsg += `Launch #${page + 1} of ${userEvents.length}:\n\n`;
             eventMsg += `📃 Project Name: ${event.eventName}\n` +
                         `🔗 Project Chain: ${capitalizeAllLetters(event.eventChain)}\n` +
                         `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
                         if((event?.ido)?.toLowerCase() == "yes"){
                         eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
-                            eventMsg += `📝 Notes: ${(capitalizeFirstLetter(event.eventNotes))}\n`;
-                            eventMsg += `📆 IDO Date: ${event.idoDate ? `${new Date(event.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+                            eventMsg += `📆 IDO Date Time: ${event.idoDate ? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
                         }
                         else{
                             eventMsg += `🚀 Private Sale: No\n`;
@@ -1453,8 +1537,9 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
                        ? ` ${DateTime.fromMillis(parseInt(event.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
                         : 'NA'}` +
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
-                        `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
-        // }
+                        `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
+         eventMsg += `📝 Notes: ${(event?.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
+        eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : event.eventContract)}\n\n`;
 
         let linksMarkup = [];
         if (event.eventLink &&  event.eventLink != 'false') {
@@ -1558,6 +1643,12 @@ const createFieldSetButtons = (event,currentPage) => {
                 .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),
             Object.keys(fields)
                 .filter(field => ['eventPad', 'eventDate'].includes(field))
+                .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),
+            Object.keys(fields)
+                .filter(field => ['idoDate', 'eventNotes'].includes(field))
+                .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),
+            Object.keys(fields)
+                .filter(field => ['eventContract'].includes(field))
                 .map(field => ({ text: fields[field], callback_data: `/editfield_${field}_${event._id}` })),
         ];
     } else if (currentPage == 2) {
@@ -1702,6 +1793,18 @@ async function editEvent(chatId, eventId,index) {
                     // console.log(data);
                     // data = _date.toString();
                 }
+               else if (field == "eventContract") {
+                    let _valid = isValidEthereumAddress(value);
+                        console.log(_valid);
+                    if (!_valid) {
+                        bot.sendMessage(chatId, "The address you entered is not valid. Please re-enter correct address");
+                        // bot.sendMessage(chatId, "The date you entered is not in requested format or is in the past.(e.g. DD/MM/YYYY)");
+                        return;
+                    }
+
+                    // data = _date.getTime()   
+                }
+                 
                 else  if (field == "idoDate") {
                     let _date = new Date(value);
                     let _cdate = new Date();
@@ -1715,10 +1818,14 @@ async function editEvent(chatId, eventId,index) {
                     // console.log(data);
                     // data = _date.toString();
                 }
+            let _update = { [field]: value} ; 
+            if(field == "idoDate"){
+                _update =  { [field]: value, "ido": "yes"}
+            }
             const updateEvent = await RequestModel.findOneAndUpdate( { _id : requestId},
-                { $set: { [field]: value}},
+                { $set: _update},
                 { new: true } );
-    
+               
             if (!updateEvent) {
                 console.log(`Event with requestId ${requestId} not found for chatId ${chatId}`);
                 return null;
@@ -1762,7 +1869,21 @@ async function editEvent(chatId, eventId,index) {
             }
 
             updateVariable[chatId] = false ;
-            await getEvents(chatId,requestId)
+            // await getEvents(chatId,requestId)
+            // const eventId = callbackQuery.data.split('_')[1];
+            // console.log(eventId);
+ 
+            const userEvents = await fetchEventsFromDatabase(chatId, null);
+            let page = 0 
+            userEvents.map(async (v,i) => {
+                if(v._id == requestId){
+                    page = i                      
+                    await showEvent(chatId , page ,false)                    
+                    return;
+                }
+
+            })
+
             // console.log(`Updated event`);
             // editEvent(c)
             // return deletedEvent;
@@ -1779,6 +1900,21 @@ async function editEvent(chatId, eventId,index) {
         
     };
 
+
+    function isValidEthereumAddress(address) {
+        // Check if the address is valid and has the correct length
+        if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) {
+            return false;
+        }
+    
+        // If it's all lowercase or all uppercase, it is not checksummed or it might be, but it's valid
+        if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
+            return true;
+        }
+    
+        // Check the checksum
+        return ethUtil.isValidChecksumAddress(address);
+    }
 
 
 
