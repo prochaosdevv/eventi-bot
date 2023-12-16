@@ -138,7 +138,7 @@ async function checkAndSendReminders(bot) {
   
           if (Date.now() > reminderTimestamp) {
             console.log(`Sending reminder for event at ${new Date(reminderTimestamp)}`);
-            let _text = "🚨⚠️ LAUNCH REMINDER ⚠️🚨\n\n" ; 
+            let _text = "🚨⚠️ SET EVENT DATE REMINDER ⚠️🚨\n\n" ; 
             _text += `📃 Project Name: ${request.eventName}\n` +
             `🔗 Project Chain: ${capitalizeAllLetters(request.eventChain)}\n` +
             `🔁 Platform: ${capitalizeFirstLetter(request.eventPad)}\n` ;
