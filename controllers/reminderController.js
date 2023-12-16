@@ -47,8 +47,8 @@ async function checkAndSendReminders(bot) {
            `🔁 Platform: ${capitalizeFirstLetter(request.eventPad)}\n` ;
            if((request?.ido)?.toLowerCase() == "yes"){
             _text += `🚀 Private Sale: ${((request.ido).toUpperCase())}\n`;
-            _text += `📝 Notes: ${(capitalizeFirstLetter(request.eventNotes))}\n`;
-               _text += `📆 IDO Date: ${request.idoDate ? `${new Date(request.idoDate).toLocaleString()} EST` : 'NA'}\n`;        
+            
+               _text += `📆 IDO Date: ${request.idoDate ? `${DateTime.fromMillis(parseInt(request.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
            }
            else{
             _text += `🚀 Private Sale: No\n`;
@@ -59,7 +59,7 @@ async function checkAndSendReminders(bot) {
            : 'NA'}` ;
           //  `\n${request.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
           //  `${!request.eventDate  || request.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${request.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
-          _text += `📝 Notes: ${(request.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(request.eventNotes))}\n`;
+          _text += `\n📝 Notes: ${(request.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(request.eventNotes))}\n`;
           _text += `📑 Contract: ${(request.eventContract == 'false' ? "NA" : request.eventContract)}\n`;
            let linksMarkup = [];
         if (request.eventLink &&  request.eventLink != 'false') {
