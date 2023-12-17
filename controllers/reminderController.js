@@ -13,6 +13,7 @@ const { DateTime } = require("luxon");
     const capitalizeAllLetters = (str) => {
       return str.toUpperCase();
   }
+  
 async function checkAndSendReminders(bot) {
     try {
       console.log("running inside");
@@ -60,7 +61,7 @@ async function checkAndSendReminders(bot) {
           //  `\n${request.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
           //  `${!request.eventDate  || request.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${request.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
           _text += `\n📝 Notes: ${(request.eventNotes == 'false' ? "Not Set" : capitalizeFirstLetter(request.eventNotes))}\n`;
-          _text += `📑 Contract: ${(request.eventContract == 'false' ? "Not Set" : request.eventContract)}\n`;
+          _text += `📑 Contract: ${(request.eventContract == 'false' ? "Not Set" : "`"+request.eventContract+"` (Tap to copy)")}\n`;
            let linksMarkup = [];
         if (request.eventLink &&  request.eventLink != 'false') {
             linksMarkup.push({
@@ -157,7 +158,7 @@ async function checkAndSendReminders(bot) {
            //  `\n${request.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
            //  `${!request.eventDate  || request.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${request.eventDateRemindInterval / ONE_DAY} days` : ''}\n\n`;
            _text += `\n📝 Notes: ${(request.eventNotes == 'false' ? "Not Set" : capitalizeFirstLetter(request.eventNotes))}\n`;
-           _text += `📑 Contract: ${(request.eventContract == 'false' ? "Not Set" : request.eventContract)}\n`;
+           _text += `📑 Contract: ${(request.eventContract == 'false' ? "Not Set" : "`"+request.eventContract+"` (Tap to copy)")}\n`;
             let linksMarkup = [];
          if (request.eventLink &&  request.eventLink != 'false') {
              linksMarkup.push({

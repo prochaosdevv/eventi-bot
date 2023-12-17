@@ -1,7 +1,9 @@
 exports.SEVEN_DAY = "604800000"
 exports.ONE_DAY = "86400000"
 exports.ONE_HOUR = "3600000"
-
+exports.TWELVE_HOUR = "43200000"
+exports.THIRTY_MIN = "1800000"
+exports.TEN_MIN = "600000" 
 exports.fieldMarkupsOne = {
     "eventName": "Project Name",
     "eventChain": "Project Chain",

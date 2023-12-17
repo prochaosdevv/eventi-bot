@@ -9,7 +9,7 @@ const RequestModel = require('../models/requestsModel');
 const token = process.env.TG_BOT_SECRET;
 const bot = new TelegramBot(token, { polling: true });
 const path = require('path');
-const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo } = require('../config/constants');
+const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo, TWELVE_HOUR, THIRTY_MIN, TEN_MIN } = require('../config/constants');
 const { log } = require('console');
 const Calendar = require('telegram-inline-calendar');
 const { DateTime } = require("luxon");
@@ -52,7 +52,10 @@ const nextField = {
 const REMINDER_TEXT = {
     [SEVEN_DAY]: "Seven days before launch",
     [ONE_DAY]: "One day before launch",
-    [ONE_HOUR]: "One hour before launch"
+    [TWELVE_HOUR]: "Twelve hour before launch",
+    [ONE_HOUR]: "One hour before launch",
+    [THIRTY_MIN]: "30 minutes before launch",
+    [TEN_MIN]: "10 minutes before launch"
 }
 
 const DATE_REMINDER_TEXT = {
@@ -251,10 +254,28 @@ const remindBeforeMsgMarkup = {
             ],
             [
                 {
+                    text: REMINDER_TEXT[TWELVE_HOUR],
+                    callback_data: `remindBefore_${TWELVE_HOUR}`,
+                }
+            ],
+            [
+                {
                     text: REMINDER_TEXT[ONE_HOUR],
                     callback_data: `remindBefore_${ONE_HOUR}`,
                 }
-            ]
+            ],
+            [
+                {
+                    text: REMINDER_TEXT[THIRTY_MIN],
+                    callback_data: `remindBefore_${THIRTY_MIN}`,
+                }
+            ],
+            [
+                {
+                    text: REMINDER_TEXT[TEN_MIN],
+                    callback_data: `remindBefore_${TEN_MIN}`,
+                }
+            ],
         ]
     }, parse_mode: 'html'
 };
@@ -855,7 +876,7 @@ function setRemindBefore(chatId, seconds) {
     fs.writeFileSync(destination, JSON.stringify(_parseContent));
     console.log(_parseContent.remindBefore.includes(ONE_DAY));
 
-    if (!_parseContent.remindBefore.includes(SEVEN_DAY) || !_parseContent.remindBefore.includes(ONE_DAY) || !_parseContent.remindBefore.includes(ONE_HOUR)) {
+    if (!_parseContent.remindBefore.includes(SEVEN_DAY) || !_parseContent.remindBefore.includes(ONE_DAY) || !_parseContent.remindBefore.includes(TWELVE_HOUR) || !_parseContent.remindBefore.includes(ONE_HOUR) || !_parseContent.remindBefore.includes(THIRTY_MIN) || !_parseContent.remindBefore.includes(TEN_MIN)) {
 
         let _keybArray = [];
         if (!_parseContent.remindBefore.includes(SEVEN_DAY)) {
@@ -870,10 +891,28 @@ function setRemindBefore(chatId, seconds) {
                 callback_data: `remindBefore_${ONE_DAY}`,
             }])
         }
+        if (!_parseContent.remindBefore.includes(TWELVE_HOUR)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[TWELVE_HOUR],
+                callback_data: `remindBefore_${TWELVE_HOUR}`,
+            }])
+        }
         if (!_parseContent.remindBefore.includes(ONE_HOUR)) {
             _keybArray.push([{
                 text: REMINDER_TEXT[ONE_HOUR],
                 callback_data: `remindBefore_${ONE_HOUR}`,
+            }])
+        }
+        if (!_parseContent.remindBefore.includes(THIRTY_MIN)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[THIRTY_MIN],
+                callback_data: `remindBefore_${THIRTY_MIN}`,
+            }])
+        }
+        if (!_parseContent.remindBefore.includes(TEN_MIN)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[TEN_MIN],
+                callback_data: `remindBefore_${TEN_MIN}`,
             }])
         }
         _keybArray.push([{
@@ -1094,7 +1133,7 @@ function sendFinal(chatId, _parseContent) {
     text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
     // console.log(_parseContent.eventNotes);
     text += `\n📝 Notes: ${(_parseContent.eventNotes == false ? "NA" : capitalizeFirstLetter(_parseContent.eventNotes))}\n`;
-    text += `📑 Contract: ${(_parseContent.eventContract == false ? "NA" : _parseContent.eventContract)}\n\n`;
+    text += `📑 Contract: ${(_parseContent.eventContract == false ? "NA" : "`"+_parseContent.eventContract+"` (Tap to copy)")}\n\n`;
 
     console.log(text);
 
@@ -1139,7 +1178,7 @@ function sendFinal(chatId, _parseContent) {
                     }
                 ]
             ]
-        }, parse_mode: 'html'
+        }, parse_mode: 'markdown'
 
     };
 
@@ -1469,7 +1508,7 @@ async function getEvents(chatId ,requestId){
                 `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                 `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
                 eventMsg += `📝 Notes: ${(event.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
-                eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : event.eventContract)}\n\n`;
+                eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : "`"+event.eventContract+"` (Tap to copy)")}\n\n`;
             
 // }
 
@@ -1546,7 +1585,7 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                         `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
          eventMsg += `📝 Notes: ${(event?.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
-        eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : event.eventContract)}\n\n`;
+        eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : "`"+event.eventContract+"` (Tap to copy)")}\n\n`;
 
         let linksMarkup = [];
         if (event.eventLink &&  event.eventLink != 'false') {
@@ -1732,10 +1771,28 @@ async function editEvent(chatId, eventId,index) {
             }])
         }
 
+        if (!getEvent.remindBefore.includes(TWELVE_HOUR)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[TWELVE_HOUR],
+                callback_data: `remindBefore_${TWELVE_HOUR}`,
+            }])
+        }
         if (!getEvent.remindBefore.includes(ONE_HOUR)) {
             _keybArray.push([{
                 text: REMINDER_TEXT[ONE_HOUR],
                 callback_data: `remindBefore_${ONE_HOUR}`,
+            }])
+        }
+        if (!getEvent.remindBefore.includes(THIRTY_MIN)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[THIRTY_MIN],
+                callback_data: `remindBefore_${THIRTY_MIN}`,
+            }])
+        }
+        if (!getEvent.remindBefore.includes(TEN_MIN)) {
+            _keybArray.push([{
+                text: REMINDER_TEXT[TEN_MIN],
+                callback_data: `remindBefore_${TEN_MIN}`,
             }])
         }
         if(_keybArray.length == 0){
@@ -1855,10 +1912,28 @@ async function editEvent(chatId, eventId,index) {
                         callback_data: `remindBefore_${ONE_DAY}`,
                     }])
                 }
+                if (!value.remindBefore.includes(TWELVE_HOUR)) {
+                    _keybArray.push([{
+                        text: REMINDER_TEXT[TWELVE_HOUR],
+                        callback_data: `remindBefore_${TWELVE_HOUR}`,
+                    }])
+                }
                 if (!value.remindBefore.includes(ONE_HOUR)) {
                     _keybArray.push([{
                         text: REMINDER_TEXT[ONE_HOUR],
                         callback_data: `remindBefore_${ONE_HOUR}`,
+                    }])
+                }
+                if (!value.remindBefore.includes(THIRTY_MIN)) {
+                    _keybArray.push([{
+                        text: REMINDER_TEXT[THIRTY_MIN],
+                        callback_data: `remindBefore_${THIRTY_MIN}`,
+                    }])
+                }
+                if (!value.remindBefore.includes(TEN_MIN)) {
+                    _keybArray.push([{
+                        text: REMINDER_TEXT[TEN_MIN],
+                        callback_data: `remindBefore_${TEN_MIN}`,
                     }])
                 }
                 _keybArray.push([{
