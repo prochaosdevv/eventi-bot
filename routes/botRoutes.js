@@ -1894,8 +1894,7 @@ async function editEvent(chatId, eventId,index) {
                 console.log(`Event with requestId ${requestId} not found for chatId ${chatId}`);
                 return null;
             }
-            bot.sendMessage(chatId,'Updated event');
-
+           
             if (field == "remindBefore" && !skip )
             {
 
@@ -1951,6 +1950,8 @@ async function editEvent(chatId, eventId,index) {
             }
 
             updateVariable[chatId] = false ;
+            bot.sendMessage(chatId,'Updated event');
+
             // await getEvents(chatId,requestId)
             // const eventId = callbackQuery.data.split('_')[1];
             // console.log(eventId);
