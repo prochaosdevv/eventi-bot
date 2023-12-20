@@ -376,24 +376,7 @@ botRotues.get('/', async (req, res) => {
 
 
         if (!uniqueid.includes(chatId + msg.message_id)) {
-            bot.sendMessage(chatId, 'Welcome to the Event Reminder Wizard! ✨ To conjure up a reminder, use the magic words: /setreminder. Let the enchantment begin!', {
-                "reply_markup": {
-                    "inline_keyboard": [
-                        [
-                            {
-                                text: "Set Reminder",
-                                callback_data: "/setreminder",
-
-                            },
-                            {
-                                text: "List Reminders",
-                                callback_data: "/listreminder",
-
-                            },
-                        ]
-                    ]
-                }, parse_mode: 'html'
-            });
+            sendWelcomeText(chatId);
             uniqueid.push(chatId + msg.message_id)
         }
     })
@@ -417,10 +400,19 @@ botRotues.get('/', async (req, res) => {
             if (callbackQuery.data == "/setreminder") {
                 setreminder(chatId)
             }
-            if(callbackQuery.data == "/listreminder"){
-                // const chatId = msg.chat.id;
-                const page = 0;
+
+            if(callbackQuery.data == "/subscription") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                sendSubscriptionMenu(chatId)
+            }
+
+            if(callbackQuery.data == "/gotohome") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                sendWelcomeText(chatId)
+            }
             
+            if(callbackQuery.data == "/listreminder"){ 
+                const page = 0;            
                 try {
                    await showEvent(chatId , page ,false)
                 } catch (error) { 
@@ -428,6 +420,7 @@ botRotues.get('/', async (req, res) => {
                     bot.sendMessage(chatId, 'Error fetching events. Please try again later.');
                 }
             }
+
             if (callbackQuery.data == "/nolink") {
                 if(updateVariable[chatId]){
                 updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , false)
@@ -867,16 +860,15 @@ function setRemindBefore(chatId, seconds) {
     // console.log(seconds);
     _parseContent.remindBefore = _parseContent.remindBefore ? [seconds, ..._parseContent.remindBefore] : [seconds];
     console.log(_parseContent.remindBefore);
-    // if(_parseContent.remindBefore.includes(SEVEN_DAY) && _parseContent.remindBefore.includes(ONE_DAY) && _parseContent.remindBefore.includes(ONE_HOUR)){
-    //     _parseContent.currentField =  nextField[_parseContent.currentField];
-
-    //     }       
+    if(_parseContent.remindBefore.length >= 3){
+        _parseContent.currentField =  nextField[_parseContent.currentField];
+        }       
     // console.log(_parseContent); 
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.writeFileSync(destination, JSON.stringify(_parseContent));
     console.log(_parseContent.remindBefore.includes(ONE_DAY));
 
-    if (!_parseContent.remindBefore.includes(SEVEN_DAY) || !_parseContent.remindBefore.includes(ONE_DAY) || !_parseContent.remindBefore.includes(TWELVE_HOUR) || !_parseContent.remindBefore.includes(ONE_HOUR) || !_parseContent.remindBefore.includes(THIRTY_MIN) || !_parseContent.remindBefore.includes(TEN_MIN)) {
+    if (_parseContent.remindBefore.length < 3 ) {
 
         let _keybArray = [];
         if (!_parseContent.remindBefore.includes(SEVEN_DAY)) {
@@ -1132,7 +1124,7 @@ function sendFinal(chatId, _parseContent) {
     text += _reminder.join('\n');
     text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
     // console.log(_parseContent.eventNotes);
-    text += `\n📝 Notes: ${(_parseContent.eventNotes == false ? "NA" : capitalizeFirstLetter(_parseContent.eventNotes))}\n`;
+    text += `\n✏️ Notes: ${(_parseContent.eventNotes == false ? "NA" : capitalizeFirstLetter(_parseContent.eventNotes))}\n`;
     text += `📑 Contract: ${(_parseContent.eventContract == false ? "NA" : "`"+_parseContent.eventContract+"` (Tap to copy)")}\n\n`;
 
     console.log(text);
@@ -1507,7 +1499,7 @@ async function getEvents(chatId ,requestId){
     eventMsg +=         `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${DateTime.fromMillis(parseInt(_parseContent.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}` +
                 `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                 `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
-                eventMsg += `📝 Notes: ${(event.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
+                eventMsg += `✏️ Notes: ${(event.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
                 eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : "`"+event.eventContract+"` (Tap to copy)")}\n\n`;
             
 // }
@@ -1584,7 +1576,7 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
                         : 'NA'}` +
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                         `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
-         eventMsg += `📝 Notes: ${(event?.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
+         eventMsg += `✏️ Notes: ${(event?.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
         eventMsg += `📑 Contract: ${(event.eventContract == 'false' ? "NA" : "`"+event.eventContract+"` (Tap to copy)")}\n\n`;
 
         let linksMarkup = [];
@@ -1817,8 +1809,70 @@ async function editEvent(chatId, eventId,index) {
         bot.deleteMessage(chatId,  message_id)
     
     };
+    const sendWelcomeText = (chatId) => {
+        bot.sendMessage(chatId, 'Welcome to the Event Reminder Wizard! ✨ To conjure up a reminder, use the magic words: /setreminder. Let the enchantment begin!', {
+            "reply_markup": {
+                "inline_keyboard": [
+                    [
+                        {
+                            text: "☑️ Set Reminder",
+                            callback_data: "/setreminder",
 
-    const updateField = async (chatId,field,requestId,value, skip=false) => {
+                        },
+                        {
+                            text: "📋 List Reminders",
+                            callback_data: "/listreminder",
+
+                        }
+                    ],
+                    [
+                        {
+                            text: "🗓️ Manage Subscription",
+                            callback_data: "/subscription",
+                        },
+                         
+                    ]
+                ]
+            }, parse_mode: 'html'
+        });
+    }
+
+    const sendSubscriptionMenu = (chatId) => {
+        bot.sendMessage(chatId, `You're not subscribed yet. Please choose from subscription options below.`, {
+            "reply_markup": {
+                "inline_keyboard": [
+                    [
+                        {
+                            text: "X Token Holder",
+                            callback_data: "/tokenHolder",
+
+                        },
+                    ],
+                    [
+                        {
+                            text: "Pay 0.05 ETH Monthly",
+                            callback_data: "/paymonthy",
+
+                        },
+                    ],
+                    [
+                        {
+                            text: "Get Whitlisted",
+                            callback_data: "/getwhitelisted",
+                        },                         
+                    ],
+                    [
+                        {
+                            text: "⬅️ Go Back",
+                            callback_data: "/gotohome",
+                        },                         
+                    ]
+                ]
+            }, parse_mode: 'html'
+        });
+    }
+
+        const updateField = async (chatId,field,requestId,value, skip=false) => {
      
 
         try {
@@ -1899,6 +1953,7 @@ async function editEvent(chatId, eventId,index) {
             {
 
                 let _keybArray = [];
+
                 if (!value.remindBefore.includes(SEVEN_DAY)) {
                     _keybArray.push([{
                         text: REMINDER_TEXT[SEVEN_DAY],
