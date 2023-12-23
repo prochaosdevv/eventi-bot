@@ -820,9 +820,9 @@ botRotues.get('/', async (req, res) => {
         const text = msg.text;
         if (!uniqueid.includes(chatId + msg.message_id)) {
             console.log(msg.text);
-
-            if(msg.reply_to_message){
             uniqueid.push(chatId + msg.message_id)
+
+            if(msg.reply_to_message){ 
                 if(msg.reply_to_message.text == REGISTER_WALLET_TEXT){
                 updateSubscriptionWallet(chatId,text)
                 return;
@@ -841,6 +841,8 @@ botRotues.get('/', async (req, res) => {
                          }
             }
             else if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder"  && text !== "/listreminder"  && text !== "/list_launches_next_7days" && text !== "/list_launches_next_month" && text != "/ido_yes" && text != "/ido_no") {
+          
+            
                 console.log(text);
                 let _now = new Date().getTime()
                 const checkValidity = await SubscriptionModel.findOne({chatId: chatId, subscriptionEnd : {$gte: _now}});
@@ -854,7 +856,6 @@ botRotues.get('/', async (req, res) => {
                 else{
                     updateData(chatId, text)
                 }
-                uniqueid.push(chatId + msg.message_id)
 
             }
         }
