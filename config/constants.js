@@ -13,7 +13,7 @@ exports.TEAM_WALLET = "0x655041a9d6f40Ce7a78300dFcE4f0C8a5a1e1296"
 exports.TOKEN_CONTRACT = "0xf247B032de91466A63B0a6Ad125A53E005677b11"
 exports.PROVIDER = 'https://polygon-mumbai-bor.publicnode.com'
 exports.METHOD = ["",`${this.TOKEN_SYMBOL} Token Holder` , `${this.MONTHLY_ETH} ETH Monthly`, 'Whitlisted']
-exports.TEAM_CHATS = [5804503613]
+exports.TEAM_CHATS = [5804503613,1238888292]
 exports.fieldMarkupsOne = {
     "eventName": "Project Name",
     "eventChain": "Project Chain",
