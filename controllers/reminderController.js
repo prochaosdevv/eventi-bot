@@ -23,7 +23,10 @@ async function checkAndSendReminders(bot) {
       for (const request of allRequests) {
         const { eventDate, remindBefore, _id,chatId } = request;
         // console.log("eventDate, remindBefore, _id", eventDate, remindBefore, _id.toString());
-  
+        let _now = new Date().getTime()
+        const checkValidity = await SubscriptionModel.findOne({chatId: chatId, subscriptionEnd : {$gte: _now}});
+        if(checkValidity){
+         
         const eventTimestamp = new Date(parseInt(eventDate)).getTime();
         // console.log(eventTimestamp);
   
@@ -109,6 +112,8 @@ async function checkAndSendReminders(bot) {
           }
         }
       }
+
+      }
   
       console.log('out side Reminders checked and sent successfully.');
     } catch (error) {
@@ -122,6 +127,11 @@ async function checkAndSendReminders(bot) {
       console.log(requests.length);
       requests.forEach(async (request) => {
         const chatId = request.chatId; 
+
+        let _now = new Date().getTime()
+        const checkValidity = await SubscriptionModel.findOne({chatId: chatId, subscriptionEnd : {$gte: _now}});
+        if(checkValidity){
+
         const eventDateRemindIntervalInMilliseconds = parseInt(request.eventDateRemindInterval, 10);
         const createdAtTimestamp = new Date(request.createdAt).getTime();
         const existingReminder = await EventDateReminder.findOne({
@@ -209,6 +219,7 @@ async function checkAndSendReminders(bot) {
           }
         } catch (error) {
           console.error('Error checking or inserting to EventDateReminder:', error);
+        }
         }
       });
   

@@ -401,8 +401,12 @@ botRotues.get('/', async (req, res) => {
     bot.on('callback_query', async function onCallbackQuery(callbackQuery) {
 
         const chatId = callbackQuery.message.chat.id;
-        if (!uniqueid.includes(chatId + callbackQuery.message.message_id)) {
-            uniqueid.push(chatId + callbackQuery.message.message_id)
+        let _time = parseInt(new Date().getTime()/1e3)
+        // console.log(_time);
+        // console.log(chatId + callbackQuery.message.message_id + _time);
+        // console.log(uniqueid.includes(chatId + callbackQuery.message.message_id + _time));
+        if (!uniqueid.includes(chatId + callbackQuery.message.message_id + _time)) {
+            uniqueid.push(chatId + callbackQuery.message.message_id +  _time)
 
             if (callbackQuery.data == "/setreminder") {
                 setreminder(chatId)
@@ -462,6 +466,7 @@ botRotues.get('/', async (req, res) => {
             if(callbackQuery.data == "/listreminder"){ 
                 const page = 0;            
                 try {
+                    console.log("here");
                    await showEvent(chatId , page ,false)
                 } catch (error) { 
                     console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
@@ -837,6 +842,12 @@ botRotues.get('/', async (req, res) => {
             }
             else if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder"  && text !== "/listreminder"  && text !== "/list_launches_next_7days" && text !== "/list_launches_next_month" && text != "/ido_yes" && text != "/ido_no") {
                 console.log(text);
+                let _now = new Date().getTime()
+                const checkValidity = await SubscriptionModel.findOne({chatId: chatId, subscriptionEnd : {$gte: _now}});
+                if(!checkValidity){
+                    sendSubscriptionMenu(chatId);
+                    return;
+                }
                 if(updateVariable[chatId]){
                     updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , text)
                 }
@@ -1010,10 +1021,19 @@ function setReminderDateInterval(chatId, seconds) {
 
 
 
-function setreminder(chatId) {
-    const destinationFilePath = path.join(__dirname, `../chats/${chatId}.json`);
-    createChatFile(chatId, destinationFilePath);
-    bot.sendMessage(chatId, eventNameMsg, eventNameMarkup);
+async function setreminder(chatId) {
+     
+    let _now = new Date().getTime()
+    const checkValidity = await SubscriptionModel.findOne({chatId: chatId, subscriptionEnd : {$gte: _now}});
+    if(!checkValidity){
+        sendSubscriptionMenu(chatId);
+        return;
+    }
+        const destinationFilePath = path.join(__dirname, `../chats/${chatId}.json`);
+        createChatFile(chatId, destinationFilePath);
+        bot.sendMessage(chatId, eventNameMsg, eventNameMarkup);
+  
+  
 }
 
 async function updateData(chatId, data) {
@@ -1516,6 +1536,7 @@ bot.onText(/\/listreminder/, async (msg) => {
     const page = 0;
 
     try {
+        
        await showEvent(chatId , page ,false)
     } catch (error) { 
         console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
@@ -1617,6 +1638,14 @@ const keyboard = {
 
 async function showEvent(chatId , page ,update, callback_data = null, dateFilter =null){
     console.log(dateFilter);
+
+    let _now = new Date().getTime()
+    const checkValidity = await SubscriptionModel.findOne({chatId: chatId, subscriptionEnd : {$gte: _now}});
+    if(!checkValidity){
+        sendSubscriptionMenu(chatId);
+        return;
+    }
+
     const userEvents = await fetchEventsFromDatabase(chatId, dateFilter);
 
 
@@ -1624,7 +1653,7 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
     if (userEvents.length > 0) {
   
             const event = userEvents[page];
-            console.log(page);
+            console.log(event);
 
     
 
