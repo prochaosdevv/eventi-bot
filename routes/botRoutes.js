@@ -2258,7 +2258,7 @@ async function editEvent(chatId, eventId,index) {
         let reply_markup;
 
             if(_getUserSubscription.subscriptionEnd < _now ){
-                _text = `You're not subscribed using this method. To subscribe share your Chat ID with the owner.\n\nChat ID: ${chatId}\n`
+                _text = `You're not subscribed using this method. To subscribe share your Chat ID with the owner.\n\nChat ID: \`${chatId}\` (tap to copy)\n`
                 reply_markup = {
                     "inline_keyboard": [
                         [                      
@@ -2275,7 +2275,7 @@ async function editEvent(chatId, eventId,index) {
             }
         }
         else{
-            _text = `You're not subscribed using this method. To subscribe share your Chat ID with the owner.\n\nChat ID: ${chatId}\n`
+            _text = `You're not subscribed using this method. To subscribe share your Chat ID with the owner.\n\nChat ID: \`${chatId}\` (tap to copy)\n`
             reply_markup = {
                 "inline_keyboard": [
                     [                      
