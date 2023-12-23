@@ -2,6 +2,7 @@ const RequestModel = require('../models/requestsModel');
 const EventReminder = require('../models/eventReminderModel')
 const EventDateReminder = require('../models/EventDateReminderModel');
 const { DateTime } = require("luxon");
+const SubscriptionModel = require('../models/subscriptionModel');
  
 
 // const bot = require('../routes/botRoutes');
