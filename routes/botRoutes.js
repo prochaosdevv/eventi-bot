@@ -9,12 +9,18 @@ const RequestModel = require('../models/requestsModel');
 const token = process.env.TG_BOT_SECRET;
 const bot = new TelegramBot(token, { polling: true });
 const path = require('path');
-const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo, TWELVE_HOUR, THIRTY_MIN, TEN_MIN } = require('../config/constants');
-const { log } = require('console');
+const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo, TWELVE_HOUR, THIRTY_MIN, TEN_MIN, TOKEN_SYMBOL, TOKEN_LIMT, MONTHLY_ETH, TEAM_WALLET, PROVIDER, MONTHLY_WEI, METHOD, TOKEN_CONTRACT, TOKEN_LIMIT_WEI, TEAM_CHATS } = require('../config/constants');
+const { log, error } = require('console');
 const Calendar = require('telegram-inline-calendar');
 const { DateTime } = require("luxon");
 const ethUtil = require('ethereumjs-util');
+const REGISTER_WALLET_TEXT = `Please send the holder wallet address with minimum ${TOKEN_LIMT} ${TOKEN_SYMBOL}`
+const ADD_TO_WHITELIST_TEXT = `Please send the chat id you want to add to whitelist`
+const REMOVE_FROM_WHITELIST_TEXT = `Please send the chat id you want to remove from whitelist`
 
+const TXN_TEXT = `Please send the ${MONTHLY_ETH} ETH to our team wallet address \n\n ${TEAM_WALLET}`
+const { ethers } = require('ethers');
+const TOKEN_ABI = require("../config/TokenABI.json")
 // const readFileAsync = util.promisify(fs.readFile);
 
 const calendar = new Calendar(bot, {
@@ -29,6 +35,7 @@ const sourceFilePath = path.join(__dirname, '../config/master.json');
 
 const { Extra, Markup } = require('telegraf');
 const { checkAndSendReminders, sendReminderForSetEventDate } = require('../controllers/reminderController');
+const SubscriptionModel = require('../models/subscriptionModel');
 
 // const botCal = new Telegraf(token);
 
@@ -374,8 +381,8 @@ botRotues.get('/', async (req, res) => {
     bot.onText(/\/start/, async (msg) => {
         const chatId = msg.chat.id;
 
-
         if (!uniqueid.includes(chatId + msg.message_id)) {
+        console.log("jhdvchjvcjvhj");
             sendWelcomeText(chatId);
             uniqueid.push(chatId + msg.message_id)
         }
@@ -405,11 +412,52 @@ botRotues.get('/', async (req, res) => {
                 bot.deleteMessage(chatId,callbackQuery.message.message_id)
                 sendSubscriptionMenu(chatId)
             }
+            if(callbackQuery.data == "/addwhitelist") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                addwhitelist(chatId)
+            }
+            
+            if(callbackQuery.data == "/removewhitelist") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                removeFromWhitelist(chatId)
+            }
 
+            if(callbackQuery.data == "/adminwhitelist") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                sendWhitelistMenu(chatId)
+            }
+            
             if(callbackQuery.data == "/gotohome") {
                 bot.deleteMessage(chatId,callbackQuery.message.message_id)
                 sendWelcomeText(chatId)
             }
+
+            if(callbackQuery.data == "/tokenHolder") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                sendHolderSubscription(chatId)
+            }
+
+            if(callbackQuery.data == "/getwhitelisted") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                getWhitelistMessage(chatId)
+            }
+            
+            
+            if(callbackQuery.data == "/updatetxnhash") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                txnUpdateSubscriptionMessage(chatId)
+            }
+
+            if(callbackQuery.data == "/updatetokenHolder") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                registerUpdateSubscriptionMessage(chatId)
+            }
+
+            if(callbackQuery.data == "/paymonthy") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                sendMonthlySubscription(chatId)
+            }
+
             
             if(callbackQuery.data == "/listreminder"){ 
                 const page = 0;            
@@ -766,8 +814,29 @@ botRotues.get('/', async (req, res) => {
         const chatId = msg.chat.id;
         const text = msg.text;
         if (!uniqueid.includes(chatId + msg.message_id)) {
+            console.log(msg.text);
 
-            if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder"  && text !== "/listreminder"  && text !== "/list_launches_next_7days" && text !== "/list_launches_next_month" && text != "/ido_yes" && text != "/ido_no") {
+            if(msg.reply_to_message){
+            uniqueid.push(chatId + msg.message_id)
+                if(msg.reply_to_message.text == REGISTER_WALLET_TEXT){
+                updateSubscriptionWallet(chatId,text)
+                return;
+                 }
+                else if(msg.reply_to_message?.text == TXN_TEXT){
+                updateSubscriptionTxn(chatId,text)
+                return;
+                 }
+                 else if(msg.reply_to_message?.text == ADD_TO_WHITELIST_TEXT){
+                    addtowhitelist(chatId,text)
+                    return;
+                     }
+                     else if(msg.reply_to_message?.text == REMOVE_FROM_WHITELIST_TEXT){
+                        removefromwhitelist(chatId,text)
+                        return;
+                         }
+            }
+            else if (text !== "/setreminder" && text !== "/start" && text !== "/nolink" && text !== "/nodate" && text !== "/listreminder"  && text !== "/listreminder"  && text !== "/list_launches_next_7days" && text !== "/list_launches_next_month" && text != "/ido_yes" && text != "/ido_no") {
+                console.log(text);
                 if(updateVariable[chatId]){
                     updateField(chatId ,  updateVariable[chatId].field ,updateVariable[chatId].requestId , text)
                 }
@@ -957,24 +1026,26 @@ async function updateData(chatId, data) {
         sendFinal(chatId, _parseContent)
     }
     else if (_currentField == "stop") {
-        bot.sendMessage(chatId, 'Welcome to the Event Reminder Wizard! ✨ To conjure up a reminder, use the magic words: /setreminder. Let the enchantment begin!', {
-            "reply_markup": {
-                "inline_keyboard": [
-                    [
-                        {
-                            text: "Set Reminder",
-                            callback_data: "/setreminder",
+        // bot.sendMessage(chatId, 'Welcome to the Event Reminder Wizard! ✨ To conjure up a reminder, use the magic words: /setreminder. Let the enchantment begin!', {
+        //     "reply_markup": {
+        //         "inline_keyboard": [
+        //             [
+        //                 {
+        //                     text: "Set Reminder",
+        //                     callback_data: "/setreminder",
 
-                        },
-                        {
-                            text: "Delete Reminder",
-                            callback_data: "/deletereminder",
+        //                 },
+        //                 {
+        //                     text: "Delete Reminder",
+        //                     callback_data: "/deletereminder",
 
-                        },
-                    ]
-                ]
-            }, parse_mode: 'html'
-        });
+        //                 },
+        //             ]
+        //         ]
+        //     }, parse_mode: 'html'
+        // });
+
+        sendWelcomeText(chatId)
 
     }
     else {
@@ -1810,6 +1881,20 @@ async function editEvent(chatId, eventId,index) {
     
     };
     const sendWelcomeText = (chatId) => {
+        console.log(chatId);
+        let subscriptionButtons = [
+            {
+                text: "🗓️ Manage Subscription",
+                callback_data: "/subscription",
+            }
+             
+        ]
+        if(TEAM_CHATS.includes(chatId)){
+            subscriptionButtons.push({
+                text: "🗓️ Manage Whitelist",
+                callback_data: "/adminwhitelist",
+            })
+        }
         bot.sendMessage(chatId, 'Welcome to the Event Reminder Wizard! ✨ To conjure up a reminder, use the magic words: /setreminder. Let the enchantment begin!', {
             "reply_markup": {
                 "inline_keyboard": [
@@ -1825,42 +1910,77 @@ async function editEvent(chatId, eventId,index) {
 
                         }
                     ],
-                    [
-                        {
-                            text: "🗓️ Manage Subscription",
-                            callback_data: "/subscription",
-                        },
-                         
-                    ]
+                    subscriptionButtons
                 ]
             }, parse_mode: 'html'
         });
     }
+    
+    
 
-    const sendSubscriptionMenu = (chatId) => {
-        bot.sendMessage(chatId, `You're not subscribed yet. Please choose from subscription options below.`, {
-            "reply_markup": {
-                "inline_keyboard": [
-                    [
-                        {
-                            text: "X Token Holder",
-                            callback_data: "/tokenHolder",
+    const removeFromWhitelist = async (chatId) => {
+        
+        let _text = REMOVE_FROM_WHITELIST_TEXT;
+        let _forceReply = true 
 
-                        },
-                    ],
-                    [
-                        {
-                            text: "Pay 0.05 ETH Monthly",
-                            callback_data: "/paymonthy",
+         
+            bot.sendMessage(chatId, _text, {
+                "reply_markup": {
+                force_reply: _forceReply,   
+                input_field_placeholder: '0x...'
+                },  
+                parse_mode: 'markDown',
 
-                        },
-                    ],
-                    [
-                        {
-                            text: "Get Whitlisted",
-                            callback_data: "/getwhitelisted",
-                        },                         
-                    ],
+            });
+
+    }
+
+    const addwhitelist = async (chatId) => {
+        
+        let _text = ADD_TO_WHITELIST_TEXT;
+        let _forceReply = true 
+
+         
+            bot.sendMessage(chatId, _text, {
+                "reply_markup": {
+                force_reply: _forceReply,   
+                input_field_placeholder: '0x...'
+                },  
+                parse_mode: 'markDown',
+
+            });
+
+    }
+    const sendWhitelistMenu = async (chatId) => {
+        let _text = `Please use the buttons below to manage whitelist` 
+        let reply_markup = {
+            "inline_keyboard": [
+                [
+                    {
+                        text: `+ Add to Whitelist`,
+                        callback_data: "/addwhitelist",
+
+                    },
+                    {
+                        text: "❌ Remove from Whitelist",
+                        callback_data: "/removewhitelist",
+
+                    },
+                ],                
+                [
+                    {
+                        text: "⬅️ Go Back",
+                        callback_data: "/gotohome",
+                    },                         
+                ]
+            ]
+        };
+        if(!TEAM_CHATS.includes(chatId)){
+            
+          
+            _text = `You're not authorized to use these options.`;
+            reply_markup = {
+                "inline_keyboard": [                    
                     [
                         {
                             text: "⬅️ Go Back",
@@ -1868,7 +1988,464 @@ async function editEvent(chatId, eventId,index) {
                         },                         
                     ]
                 ]
-            }, parse_mode: 'html'
+            };
+        }
+
+        bot.sendMessage(chatId, _text, {
+            "reply_markup": reply_markup, parse_mode: 'html'
+        });
+    }
+
+
+    const sendSubscriptionMenu = async (chatId) => {
+        let _text = `You're not subscribed yet. Please choose from subscription options below.` 
+        const result = await SubscriptionModel.findOne({chatId: chatId});
+        let reply_markup = {
+            "inline_keyboard": [
+                [
+                    {
+                        text: `${TOKEN_SYMBOL} Token Holder`,
+                        callback_data: "/tokenHolder",
+
+                    },
+                ],
+                [
+                    {
+                        text: "Pay "+MONTHLY_ETH+" ETH Monthly",
+                        callback_data: "/paymonthy",
+
+                    },
+                ],
+                [
+                    {
+                        text: "Get Whitlisted",
+                        callback_data: "/getwhitelisted",
+                    },                         
+                ],
+                [
+                    {
+                        text: "⬅️ Go Back",
+                        callback_data: "/gotohome",
+                    },                         
+                ]
+            ]
+        };
+        if(result){
+            
+            let _time =  `${DateTime.fromMillis(parseInt(result.subscriptionEnd), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+ 
+            _text = `Your subscription is active.\n\nExpires on: ${_time}.\n\nSubscription Method: ${METHOD[result.subscriptionType]}`;
+            reply_markup = {
+                "inline_keyboard": [                    
+                    [
+                        {
+                            text: "⬅️ Go Back",
+                            callback_data: "/gotohome",
+                        },                         
+                    ]
+                ]
+            };
+        }
+        bot.sendMessage(chatId, _text, {
+            "reply_markup": reply_markup, parse_mode: 'html'
+        });
+    }
+
+    
+
+    const updateSubscriptionTxn = async (chatId,text) => {
+        let _checkBalnce = 10 ; 
+        let _now = new Date().getTime()
+        let txnHash = text ;
+        let _subscriptionEnd = parseInt(_now) + parseInt(30*ONE_DAY)
+        const result = await SubscriptionModel.findOne({subscriptionTypeValue: txnHash});
+        console.log(result);
+        if(result){
+         bot.sendMessage(chatId,`This txn hash hs been already used. Please share a different one.`);
+         sendMonthlySubscription(chatId);
+         return;         
+        }
+
+
+        let _provider =  new ethers.JsonRpcProvider(PROVIDER) ; 
+
+                   
+        // Get the transaction details
+        _provider.getTransaction(txnHash)
+       .then(async (transaction) => { 
+         if (transaction) {
+        //  bot.sendMessage(chatId,`Payment Transaction Hash: ${transaction.hash}`);
+         if(TEAM_WALLET != transaction.to){
+             bot.sendMessage(chatId,`Receipient is not the Team wallet.`);
+             sendMonthlySubscription(chatId);
+             return;
+         }
+
+         if(MONTHLY_WEI > transaction.value){
+           bot.sendMessage(chatId,`Sent value is less than  subscription fee, which is ${MONTHLY_ETH} ETH` );
+             sendMonthlySubscription(chatId);
+           return;
+         }
+
+         let filter = {chatId: chatId}
+         const updateDocument = {
+             $set: {
+                 chatId: chatId,
+             subscriptionEnd:_subscriptionEnd,
+             subscriptionType: 2,
+             subscriptionTypeValue: txnHash
+             },
+         };           
+         const options = {
+             upsert: true, // Enable upsert
+         };
+         const result = await SubscriptionModel.updateOne(filter, updateDocument, options);
+         console.log(result);
+         if (result.upsertedId || result.modifiedCount) {
+             sendMonthlySubscription(chatId)
+         }
+         else{
+             bot.sendMessage(chatId, "Oops! That didn't worked out. Please try again");
+             sendSubscriptionMenu(chatId)
+         }
+
+
+    }}).catch((e) => {
+        bot.sendMessage(chatId, "Oops! That didn't worked out. Please try again");
+        sendSubscriptionMenu(chatId)
+    })
+
+        
+   
+
+    }
+
+    const addtowhitelist = async (chatId,text) => {
+    
+ 
+         let _now = new Date().getTime()
+        let _subscriptionEnd = parseInt(_now) + parseInt(30*ONE_DAY)
+  
+            let filter = {chatId: text}
+            const updateDocument = {
+                $set: {
+                    chatId: text,
+                subscriptionEnd:_subscriptionEnd,
+                subscriptionType: 3,
+                subscriptionTypeValue: chatId
+                },
+            };           
+            const options = {
+                upsert: true, // Enable upsert
+            };
+            const result = await SubscriptionModel.updateOne(filter, updateDocument, options);
+            console.log(result);
+            if (result.upsertedId || result.modifiedCount) {
+            bot.sendMessage(chatId, "Whitelisting successfull!");
+            sendWhitelistMenu(chatId)
+            }
+            else{
+                bot.sendMessage(chatId, "Oops! That didn't worked out. Please try again");
+                sendWhitelistMenu(chatId)
+            }
+   
+
+    }
+
+
+
+    const removefromwhitelist = async (chatId,text) => {
+     
+           let filter = {chatId: text, subscriptionTypeValue: chatId,subscriptionType: 3}
+           const result = await SubscriptionModel.deleteOne(filter);
+        //    console.log(result);
+           if (result) {
+            bot.sendMessage(chatId, "Whitelist removal successfull!");
+
+               sendWhitelistMenu(chatId)
+           }
+           else{
+               bot.sendMessage(chatId, "Oops! That didn't worked out. Please try again");
+               sendWhitelistMenu(chatId)
+           }
+  
+
+   }
+
+    const updateSubscriptionWallet = async (chatId,text) => {
+   
+        if(!isValidEthereumAddress(text)){
+            bot.sendMessage(chatId, "Oops! That didn't worked out. Please send a valid wallet address.");
+            registerUpdateSubscriptionMessage(chatId)
+            return;
+        }
+
+        const provider = new ethers.JsonRpcProvider(PROVIDER); 
+        const tokenAbi = TOKEN_ABI
+        const tokenContract = new ethers.Contract(TOKEN_CONTRACT, tokenAbi, provider);
+        const _balance = await tokenContract.balanceOf(text); // Replace with the actual function you want to call
+        
+        let _checkBalnce = parseInt(_balance) ; 
+        let _now = new Date().getTime()
+        let _subscriptionEnd = parseInt(_now) + parseInt(30*ONE_DAY)
+        if(_checkBalnce >= TOKEN_LIMIT_WEI){
+            let filter = {chatId: chatId}
+            const updateDocument = {
+                $set: {
+                    chatId: chatId,
+                subscriptionEnd:_subscriptionEnd,
+                subscriptionType: 1,
+                subscriptionTypeValue: text
+                },
+            };           
+            const options = {
+                upsert: true, // Enable upsert
+            };
+            const result = await SubscriptionModel.updateOne(filter, updateDocument, options);
+            console.log(result);
+            if (result.upsertedId || result.modifiedCount) {
+                sendHolderSubscription(chatId)
+            }
+            else{
+                bot.sendMessage(chatId, "Oops! That didn't worked out. Please try again");
+                sendSubscriptionMenu(chatId)
+            }
+         
+
+        }
+        else{
+            bot.sendMessage(chatId, `Oops! Not enought ${TOKEN_SYMBOL} tokens in your wallet. Please make sure you have a minimum of ${TOKEN_LIMT} ${TOKEN_SYMBOL} in the shared wallet.`);
+            registerUpdateSubscriptionMessage(chatId)
+        }
+   
+
+    }
+
+    const getWhitelistMessage = async (chatId) => {
+        const _getUserSubscription = await SubscriptionModel.findOne({chatId: chatId}) ; 
+        if(_getUserSubscription && _getUserSubscription?.subscriptionType == 3){
+        let _now = parseInt(new Date().getTime()/1e3)
+        let _text;
+        let reply_markup;
+
+            if(_getUserSubscription.subscriptionEnd < _now ){
+                _text = `You're not subscribed using this method. To subscribe share your Chat ID with the owner.\n\nChat ID: ${chatId}\n`
+                reply_markup = {
+                    "inline_keyboard": [
+                        [                      
+                            {
+                                text: "⬅️ Go Back",
+                                callback_data: "/subscription",
+                            },
+                        ],                   
+                    ]
+                }
+            }
+            else{
+                _text = `You're already subscribed using this method.`
+            }
+        }
+        else{
+            _text = `You're not subscribed using this method. To subscribe share your Chat ID with the owner.\n\nChat ID: ${chatId}\n`
+            reply_markup = {
+                "inline_keyboard": [
+                    [                      
+                        {
+                            text: "⬅️ Go Back",
+                            callback_data: "/subscription",
+                        },
+                    ],                   
+                ]
+            }
+        }
+
+         
+            bot.sendMessage(chatId, _text, {
+                "reply_markup": reply_markup,  
+                parse_mode: 'markDown',
+
+            });
+
+    }
+
+
+    const txnUpdateSubscriptionMessage = async (chatId) => {
+        // const _getUserSubscription = await SubscriptionModel.findOne({chatId: chatId}) ; 
+        // let _now = parseInt(new Date().getTime()/1e3)
+        let _text = TXN_TEXT;
+        let _forceReply = true 
+
+         
+            bot.sendMessage(chatId, _text, {
+                "reply_markup": {
+                force_reply: _forceReply,   
+                input_field_placeholder: '0x...'
+                },  
+                parse_mode: 'markDown',
+
+            });
+
+    }
+
+
+
+    const registerUpdateSubscriptionMessage = async (chatId) => {
+        // const _getUserSubscription = await SubscriptionModel.findOne({chatId: chatId}) ; 
+        
+        let _text = REGISTER_WALLET_TEXT;
+        let _forceReply = true 
+
+         
+            bot.sendMessage(chatId, _text, {
+                "reply_markup": {
+                force_reply: _forceReply,   
+                input_field_placeholder: '0x...'
+                },  
+                parse_mode: 'markDown',
+
+            });
+
+    }
+
+
+    const sendMonthlySubscription = async (chatId) => {
+        const _getUserSubscription = await SubscriptionModel.findOne({chatId: chatId}) ; 
+        let _now = parseInt(new Date().getTime()/1e3)
+        let _text = "";
+        let _forceReply = false
+        let reply_markup = {}
+        console.log(_getUserSubscription);
+        if(_getUserSubscription && _getUserSubscription?.subscriptionType == 2){
+        if(_getUserSubscription.subscriptionEnd < _now){
+            
+            _text = `Your subscription has expired. Please send exactly ${MONTHLY_ETH} ETH to our wallet below to start your subscription.\n\nTeam wallet: \`${TEAM_WALLET}\`(Tap to copy)` ;
+            reply_markup = {
+                "inline_keyboard": [
+                    [
+                        {
+                            text: "Share Txn Hash",
+                            callback_data: "/updatetxnhash",
+
+                        },
+                        {
+                            text: "⬅️ Go Back",
+                            callback_data: "/subscription",
+                        },
+                    ],                   
+                ]
+            }
+        }
+       else if(_getUserSubscription.subscriptionEnd > _now){
+        let _time =  `${DateTime.fromMillis(parseInt(_getUserSubscription.subscriptionEnd), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+        _text = `Your subscription is active. \n\nExpires on: ${_time}` ;
+        reply_markup = {
+            "inline_keyboard": [
+                [                
+                    {
+                        text: "⬅️ Go Back",
+                        callback_data: "/subscription",
+                    },
+                ],                   
+            ]
+        }
+        }
+    }
+        else{
+            _text = `Please note that in order to subscribe using this method you need to send ${MONTHLY_ETH} ETH to our team wallet. To begin please send ${MONTHLY_ETH} to our team wallet.\n\n Team Wallet: \`${TEAM_WALLET}\`(Tap to copy) ` ;
+             _forceReply = true ;
+             reply_markup = {
+                "inline_keyboard": [
+                    [
+                        {
+                            text: "Share Txn Hash",
+                            callback_data: "/updatetxnhash",
+
+                        },
+                        {
+                            text: "⬅️ Go Back",
+                            callback_data: "/subscription",
+                        },
+                    ],                   
+                ]
+            }
+        }
+
+        bot.sendMessage(chatId, _text, {
+            "reply_markup": reply_markup, 
+            parse_mode: 'markDown',
+            force_reply: _forceReply,
+        });
+    }
+
+    const sendHolderSubscription = async (chatId) => {
+        const _getUserSubscription = await SubscriptionModel.findOne({chatId: chatId}) ; 
+        let _now = parseInt(new Date().getTime()/1e3)
+        let _text = "";
+        let _forceReply = false
+        let reply_markup = {}
+        console.log(_getUserSubscription);
+        if(_getUserSubscription && _getUserSubscription?.subscriptionType == 1){
+        if(_getUserSubscription.subscriptionEnd < _now){
+            _text = `Your subscription has expired. Please maintain a minimum of ${TOKEN_LIMT} ${TOKEN_SYMBOL} tokens in the registered wallet.\n\nYour resgistered wallet with us is: \`${_getUserSubscription.subscriptionTypeValue}\`` ;
+            reply_markup = {
+                "inline_keyboard": [
+                    [
+                        {
+                            text: "Update Wallet",
+                            callback_data: "/updatetokenHolder",
+
+                        },
+                        {
+                            text: "⬅️ Go Back",
+                            callback_data: "/subscription",
+                        },
+                    ],                   
+                ]
+            }
+        }
+       else if(_getUserSubscription.subscriptionEnd > _now){
+        _text = `Your subscription is active. Please maintain a minimum of ${TOKEN_LIMT} ${TOKEN_SYMBOL} tokens in the registered wallet.\n\nYour resgistered wallet with us is: \`${_getUserSubscription.subscriptionTypeValue}\`` ;
+        reply_markup = {
+            "inline_keyboard": [
+                [
+                    {
+                        text: "Update Wallet",
+                        callback_data: "/updatetokenHolder",
+
+                    },
+                    {
+                        text: "⬅️ Go Back",
+                        callback_data: "/subscription",
+                    },
+                ],                   
+            ]
+        }
+        }
+    }
+        else{
+            _text = `Please note that in order to subscribe using this method you need to hold ${TOKEN_LIMT} ${TOKEN_SYMBOL} tokens. To begin please register with us the holder wallet for subcription.\n\nAlso if you have an active subscription with other method please wait for it to expire.` ;
+             _forceReply = true ;
+             reply_markup = {
+                "inline_keyboard": [
+                    [
+                        {
+                            text: "Register Wallet",
+                            callback_data: "/updatetokenHolder",
+
+                        },
+                        {
+                            text: "⬅️ Go Back",
+                            callback_data: "/subscription",
+                        },
+                    ],                   
+                ]
+            }
+        }
+
+        bot.sendMessage(chatId, _text, {
+            "reply_markup": reply_markup, 
+            parse_mode: 'markDown',
+            force_reply: _forceReply,
         });
     }
 
