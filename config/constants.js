@@ -9,10 +9,15 @@ exports.TOKEN_LIMT = 500
 exports.TOKEN_LIMIT_WEI = "500000000000000000000" 
 exports.MONTHLY_WEI = "5000000000000000"
 exports.MONTHLY_ETH = 0.005
+exports.YEARLY_WEI = "56000000000000000"
+exports.YEARLY_ETH = 0.056
+exports.LIFETIME_WEI = "67000000000000000"
+exports.LIFETIME_ETH = 0.067
 exports.TEAM_WALLET = "0x655041a9d6f40Ce7a78300dFcE4f0C8a5a1e1296"
 exports.TOKEN_CONTRACT = "0xf247B032de91466A63B0a6Ad125A53E005677b11"
+exports.BLOCK_LIMIT = 86400*15 ; // For 30 days 
 exports.PROVIDER = 'https://polygon-mumbai-bor.publicnode.com'
-exports.METHOD = ["",`${this.TOKEN_SYMBOL} Token Holder` , `${this.MONTHLY_ETH} ETH Monthly`, 'Whitlisted']
+exports.METHOD = ["",`${this.TOKEN_SYMBOL} Token Holder` , `${this.MONTHLY_ETH} ETH Monthly`, 'Whitlisted',`${this.YEARLY_ETH} ETH Yearly`, `${this.LIFETIME_ETH} ETH for Lifetime`]
 exports.TEAM_CHATS = [5804503613,1238888292]
 exports.fieldMarkupsOne = {
     "eventName": "Project Name",

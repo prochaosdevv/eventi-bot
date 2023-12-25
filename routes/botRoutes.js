@@ -9,7 +9,7 @@ const RequestModel = require('../models/requestsModel');
 const token = process.env.TG_BOT_SECRET;
 const bot = new TelegramBot(token, { polling: true });
 const path = require('path');
-const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo, TWELVE_HOUR, THIRTY_MIN, TEN_MIN, TOKEN_SYMBOL, TOKEN_LIMT, MONTHLY_ETH, TEAM_WALLET, PROVIDER, MONTHLY_WEI, METHOD, TOKEN_CONTRACT, TOKEN_LIMIT_WEI, TEAM_CHATS } = require('../config/constants');
+const { SEVEN_DAY, ONE_DAY, ONE_HOUR, fieldMarkupsOne, fieldMarkupsTwo, TWELVE_HOUR, THIRTY_MIN, TEN_MIN, TOKEN_SYMBOL, TOKEN_LIMT, MONTHLY_ETH, TEAM_WALLET, PROVIDER, MONTHLY_WEI, METHOD, TOKEN_CONTRACT, TOKEN_LIMIT_WEI, TEAM_CHATS, LIFETIME_ETH, YEARLY_ETH, YEARLY_WEI, LIFETIME_WEI, BLOCK_LIMIT } = require('../config/constants');
 const { log, error } = require('console');
 const Calendar = require('telegram-inline-calendar');
 const { DateTime } = require("luxon");
@@ -18,7 +18,9 @@ const REGISTER_WALLET_TEXT = `Please send the holder wallet address with minimum
 const ADD_TO_WHITELIST_TEXT = `Please send the chat id you want to add to whitelist`
 const REMOVE_FROM_WHITELIST_TEXT = `Please send the chat id you want to remove from whitelist`
 
-const TXN_TEXT = `Please send the ${MONTHLY_ETH} ETH to our team wallet address \n\n ${TEAM_WALLET}`
+const TXN_TEXT_MONTHLY = `Please send the ${MONTHLY_ETH} ETH to our team wallet address \n\n ${TEAM_WALLET}`
+const TXN_TEXT_YEARLY = `Please send the ${YEARLY_ETH} ETH to our team wallet address \n\n ${TEAM_WALLET}`
+const TXN_TEXT_LIFETIME = `Please send the ${LIFETIME_ETH} ETH to our team wallet address \n\n ${TEAM_WALLET}`
 const { ethers } = require('ethers');
 const TOKEN_ABI = require("../config/TokenABI.json")
 // const readFileAsync = util.promisify(fs.readFile);
@@ -448,9 +450,13 @@ botRotues.get('/', async (req, res) => {
             }
             
             
-            if(callbackQuery.data == "/updatetxnhash") {
+            if(callbackQuery.data.startsWith("/updatetxnhash_")) {
+                let _days = callbackQuery.data.replace("/updatetxnhash_", "") ; 
                 bot.deleteMessage(chatId,callbackQuery.message.message_id)
-                txnUpdateSubscriptionMessage(chatId)
+                let _daysText = _days == 30 ? TXN_TEXT_MONTHLY : _days == 365 ? TXN_TEXT_YEARLY : _days == 99 ? TXN_TEXT_LIFETIME : "";
+                console.log(_days)
+                console.log(_daysText)
+                txnUpdateSubscriptionMessage(chatId,_daysText)
             }
 
             if(callbackQuery.data == "/updatetokenHolder") {
@@ -460,9 +466,18 @@ botRotues.get('/', async (req, res) => {
 
             if(callbackQuery.data == "/paymonthy") {
                 bot.deleteMessage(chatId,callbackQuery.message.message_id)
-                sendMonthlySubscription(chatId)
+                sendMonthlySubscription(chatId,30)
             }
 
+            if(callbackQuery.data == "/payyealry") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                sendMonthlySubscription(chatId,365)
+            }
+
+            if(callbackQuery.data == "/paylifetime") {
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
+                sendMonthlySubscription(chatId,99)
+            }
             
             if(callbackQuery.data == "/listreminder"){ 
                 const page = 0;            
@@ -829,10 +844,19 @@ botRotues.get('/', async (req, res) => {
                 updateSubscriptionWallet(chatId,text)
                 return;
                  }
-                else if(msg.reply_to_message?.text == TXN_TEXT){
-                updateSubscriptionTxn(chatId,text)
+                else if(msg.reply_to_message?.text == TXN_TEXT_MONTHLY){
+                updateSubscriptionTxn(chatId,text,30)
                 return;
                  }
+                 else if(msg.reply_to_message?.text == TXN_TEXT_YEARLY){
+                    updateSubscriptionTxn(chatId,text,365)
+                    return;
+                     }
+
+                     else if(msg.reply_to_message?.text == TXN_TEXT_LIFETIME){
+                        updateSubscriptionTxn(chatId,text,365*99)
+                        return;
+                         }
                  else if(msg.reply_to_message?.text == ADD_TO_WHITELIST_TEXT){
                     addtowhitelist(chatId,text)
                     return;
@@ -1212,12 +1236,12 @@ function sendFinal(chatId, _parseContent) {
     text += `🔁 Platform: ${capitalizeFirstLetter(_parseContent.eventPad)}\n`;
     if(_parseContent?.ido){
         text += `🚀 Private Sale: ${((_parseContent.ido).toUpperCase())}\n`;
-        text += `📆 IDO Date Time: ${_parseContent.idoDate ? `${DateTime.fromMillis(parseInt(_parseContent.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
+        text += `📆 IDO Date Time: ${_parseContent.idoDate ? `${DateTime.fromMillis(parseInt(_parseContent.idoDate), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
     }
     else{
         text += `🚀 Private Sale: No\n`;
     }
-    text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${DateTime.fromMillis(parseInt(_parseContent.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;
+    text += `🗓️ Event Date Time: ${_parseContent.eventDate ? `${DateTime.fromMillis(parseInt(_parseContent.eventDate), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST` : 'NA'}\n`;
     //  text += `⏰ Event Time: ${_parseContent.eventTime ? _parseContent.eventTime : 'NA'}\n`;
     text += _reminder.join('\n');
     text += `${!_parseContent.eventDate ? `\n⏰ Event Date Reminder: Every ${_parseContent.eventDateRemindInterval / ONE_DAY} days` : ''}`;
@@ -1590,12 +1614,12 @@ async function getEvents(chatId ,requestId){
                 `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
     if((event?.ido)?.toLowerCase() == "yes"){
     eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
-          eventMsg += `📆 IDO Date Time: ${event.idoDate && event.idoDate != 'false'? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
+          eventMsg += `📆 IDO Date Time: ${event.idoDate && event.idoDate != 'false'? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
     }
     else{
         eventMsg += `🚀 Private Sale: No\n`;
     }
-    eventMsg +=         `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${DateTime.fromMillis(parseInt(_parseContent.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}` +
+    eventMsg +=         `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${DateTime.fromMillis(parseInt(_parseContent.eventDate), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST` : 'NA'}` +
                 `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                 `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
                 eventMsg += `✏️ Notes: ${(event.eventNotes == 'false' ? "NA" : capitalizeFirstLetter(event.eventNotes))}\n`;
@@ -1672,14 +1696,14 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
                         `🔁 Platform: ${capitalizeFirstLetter(event.eventPad)}\n` ;
                         if((event?.ido)?.toLowerCase() == "yes"){
                         eventMsg += `🚀 Private Sale: ${((event.ido).toUpperCase())}\n`;
-                            eventMsg += `📆 IDO Date Time: ${event.idoDate && event.idoDate !== 'false' ? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
+                            eventMsg += `📆 IDO Date Time: ${event.idoDate && event.idoDate !== 'false' ? `${DateTime.fromMillis(parseInt(event.idoDate), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST` : 'NA'}\n`;        
                         }
                         else{
                             eventMsg += `🚀 Private Sale: No\n`;
                         }
                         // `🗓️ Event Date Time: ${event.eventDate && event.eventDate != 'false' ? `${(new Date(parseInt(event.eventDate)).toLocaleString())} EST` : 'NA'}` +
                         eventMsg +=    `🗓️ Event Date Time: ${event.eventDate && event.eventDate !== 'false'
-                       ? ` ${DateTime.fromMillis(parseInt(event.eventDate), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+                       ? ` ${DateTime.fromMillis(parseInt(event.eventDate), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST`
                         : 'NA'}` +
                         `\n${event.remindBefore.map((reminder, index) => `⏰ Reminder #${index + 1}: ${REMINDER_TEXT[Number(reminder)]}`).join('\n')}` +
                         `${!event.eventDate  || event.eventDate == 'false' ? `\n⏰ Event Date Reminder: Every ${event.eventDateRemindInterval / ONE_DAY} days` : ''}\n`;
@@ -2037,7 +2061,7 @@ async function editEvent(chatId, eventId,index) {
 
 
     const sendSubscriptionMenu = async (chatId) => {
-        let _text = `You're not subscribed yet. Please choose from subscription options below.` 
+        let _text = `You're not subscribed yet. Please choose from subscription options below. \n\n\nPlease note Lifetime subscription includes all future utility releases as well` 
         const result = await SubscriptionModel.findOne({chatId: chatId});
         let reply_markup = {
             "inline_keyboard": [
@@ -2050,8 +2074,22 @@ async function editEvent(chatId, eventId,index) {
                 ],
                 [
                     {
-                        text: "Pay "+MONTHLY_ETH+" ETH Monthly",
+                        text: "🔥 Subscribe monthly for "+MONTHLY_ETH+" ETH",
                         callback_data: "/paymonthy",
+
+                    },
+                ],
+                [
+                    {
+                        text: "🚀 Subscribe yearly for "+YEARLY_ETH+" ETH",
+                        callback_data: "/payyealry",
+
+                    },
+                ],
+                [
+                    {
+                        text: "⭐️ Lifetime subscription for "+LIFETIME_ETH+" ETH",
+                        callback_data: "/paylifetime",
 
                     },
                 ],
@@ -2071,7 +2109,7 @@ async function editEvent(chatId, eventId,index) {
         };
         if(result){
             
-            let _time =  `${DateTime.fromMillis(parseInt(result.subscriptionEnd), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+            let _time =  `${DateTime.fromMillis(parseInt(result.subscriptionEnd), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST`
  
             _text = `Your subscription is active.\n\nExpires on: ${_time}.\n\nSubscription Method: ${METHOD[result.subscriptionType]}`;
             reply_markup = {
@@ -2092,37 +2130,48 @@ async function editEvent(chatId, eventId,index) {
 
     
 
-    const updateSubscriptionTxn = async (chatId,text) => {
-        let _checkBalnce = 10 ; 
+    const updateSubscriptionTxn = async (chatId,text,days) => {
+        // let _checkBalnce = 10 ; 
         let _now = new Date().getTime()
         let txnHash = text ;
-        let _subscriptionEnd = parseInt(_now) + parseInt(30*ONE_DAY)
+        let _subscriptionEnd = parseInt(_now) + parseInt(days*ONE_DAY)
         const result = await SubscriptionModel.findOne({subscriptionTypeValue: txnHash});
         console.log(result);
         if(result){
          bot.sendMessage(chatId,`This txn hash hs been already used. Please share a different one.`);
-         sendMonthlySubscription(chatId);
+         sendMonthlySubscription(chatId,days == 99*365 ? 99 : days);
          return;         
         }
 
 
         let _provider =  new ethers.JsonRpcProvider(PROVIDER) ; 
-
-                   
+        const _getBlock = await _provider.getBlockNumber();
+        let _amount = days == 365 ? YEARLY_WEI : days == 30 ? MONTHLY_WEI : LIFETIME_WEI ; 
+        let _type = days == 30  ? 2 : days == 365 ? 4 : 5 ; 
         // Get the transaction details
         _provider.getTransaction(txnHash)
        .then(async (transaction) => { 
          if (transaction) {
         //  bot.sendMessage(chatId,`Payment Transaction Hash: ${transaction.hash}`);
+        console.log(parseInt(_getBlock));
+        console.log(parseInt(transaction.blockNumber));
+        let _blockDiff = parseInt(_getBlock) - parseInt(transaction.blockNumber);
+        console.log(_blockDiff);
+        if(BLOCK_LIMIT < _blockDiff){
+            bot.sendMessage(chatId,`Txn is too old.`);
+            sendMonthlySubscription(chatId,days == 99*365 ? 99 : days);
+            return;
+        }
+
          if(TEAM_WALLET != transaction.to){
              bot.sendMessage(chatId,`Receipient is not the Team wallet.`);
-             sendMonthlySubscription(chatId);
+             sendMonthlySubscription(chatId,days == 99*365 ? 99 : days);
              return;
          }
 
-         if(MONTHLY_WEI > transaction.value){
-           bot.sendMessage(chatId,`Sent value is less than  subscription fee, which is ${MONTHLY_ETH} ETH` );
-             sendMonthlySubscription(chatId);
+         if(_amount > transaction.value){
+           bot.sendMessage(chatId,`Sent value is less than subscription fee, which is ${_amount} ETH` );
+             sendMonthlySubscription(chatId,days == 99*365 ? 99 : days);
            return;
          }
 
@@ -2131,7 +2180,7 @@ async function editEvent(chatId, eventId,index) {
              $set: {
                  chatId: chatId,
              subscriptionEnd:_subscriptionEnd,
-             subscriptionType: 2,
+             subscriptionType: _type,
              subscriptionTypeValue: txnHash
              },
          };           
@@ -2141,7 +2190,7 @@ async function editEvent(chatId, eventId,index) {
          const result = await SubscriptionModel.updateOne(filter, updateDocument, options);
          console.log(result);
          if (result.upsertedId || result.modifiedCount) {
-             sendMonthlySubscription(chatId)
+             sendMonthlySubscription(chatId,days == 99*365 ? 99 : days)
          }
          else{
              bot.sendMessage(chatId, "Oops! That didn't worked out. Please try again");
@@ -2308,10 +2357,10 @@ async function editEvent(chatId, eventId,index) {
     }
 
 
-    const txnUpdateSubscriptionMessage = async (chatId) => {
+    const txnUpdateSubscriptionMessage = async (chatId,text) => {
         // const _getUserSubscription = await SubscriptionModel.findOne({chatId: chatId}) ; 
         // let _now = parseInt(new Date().getTime()/1e3)
-        let _text = TXN_TEXT;
+        let _text = text;
         let _forceReply = true 
 
          
@@ -2347,35 +2396,16 @@ async function editEvent(chatId, eventId,index) {
     }
 
 
-    const sendMonthlySubscription = async (chatId) => {
+    const sendMonthlySubscription = async (chatId,days) => {
         const _getUserSubscription = await SubscriptionModel.findOne({chatId: chatId}) ; 
         let _now = parseInt(new Date().getTime()/1e3)
         let _text = "";
         let _forceReply = false
         let reply_markup = {}
         console.log(_getUserSubscription);
-        if(_getUserSubscription && _getUserSubscription?.subscriptionType == 2){
-        if(_getUserSubscription.subscriptionEnd < _now){
-            
-            _text = `Your subscription has expired. Please send exactly ${MONTHLY_ETH} ETH to our wallet below to start your subscription.\n\nTeam wallet: \`${TEAM_WALLET}\`(Tap to copy)` ;
-            reply_markup = {
-                "inline_keyboard": [
-                    [
-                        {
-                            text: "Share Txn Hash",
-                            callback_data: "/updatetxnhash",
-
-                        },
-                        {
-                            text: "⬅️ Go Back",
-                            callback_data: "/subscription",
-                        },
-                    ],                   
-                ]
-            }
-        }
-       else if(_getUserSubscription.subscriptionEnd > _now){
-        let _time =  `${DateTime.fromMillis(parseInt(_getUserSubscription.subscriptionEnd), { zone: process.env.TZ }).toFormat('LLL dd, hh:mm a')} EST`
+        if(_getUserSubscription && (_getUserSubscription?.subscriptionType == 2 || _getUserSubscription?.subscriptionType == 4 || _getUserSubscription?.subscriptionType == 5)){
+       if(_getUserSubscription.subscriptionEnd > _now){
+        let _time =  `${DateTime.fromMillis(parseInt(_getUserSubscription.subscriptionEnd), { zone: process.env.TZ }).toFormat('yyyy LLL dd, hh:mm a')} EST`
         _text = `Your subscription is active. \n\nExpires on: ${_time}` ;
         reply_markup = {
             "inline_keyboard": [
@@ -2390,14 +2420,14 @@ async function editEvent(chatId, eventId,index) {
         }
     }
         else{
-            _text = `Please note that in order to subscribe using this method you need to send ${MONTHLY_ETH} ETH to our team wallet. To begin please send ${MONTHLY_ETH} to our team wallet.\n\n Team Wallet: \`${TEAM_WALLET}\`(Tap to copy) ` ;
+            _text = `Please note that in order to subscribe using this method you need to send ${days == 30 ? MONTHLY_ETH : days == 365 ? YEARLY_ETH : days == 99 ? LIFETIME_ETH: null} ETH to our team wallet. To begin please send exactly ${days == 30 ? MONTHLY_ETH : days == 365 ? YEARLY_ETH : days == 99 ? LIFETIME_ETH : null} ETH to our team wallet.\n\nTeam Wallet: \`${TEAM_WALLET}\`(Tap to copy) `;
              _forceReply = true ;
              reply_markup = {
                 "inline_keyboard": [
                     [
                         {
                             text: "Share Txn Hash",
-                            callback_data: "/updatetxnhash",
+                            callback_data: "/updatetxnhash_"+days,
 
                         },
                         {
