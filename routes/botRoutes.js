@@ -405,8 +405,8 @@ botRotues.get('/', async (req, res) => {
         // console.log(_time);
         // console.log(chatId + callbackQuery.message.message_id + _time);
         // console.log(uniqueid.includes(chatId + callbackQuery.message.message_id + _time));
-        if (!uniqueid.includes(chatId + callbackQuery.message.message_id + _time)) {
-            uniqueid.push(chatId + callbackQuery.message.message_id +  _time)
+        if (!uniqueid.includes(chatId + callbackQuery.message.message_id)) {
+            uniqueid.push(chatId + callbackQuery.message.message_id )
 
             if (callbackQuery.data == "/setreminder") {
                 setreminder(chatId)
