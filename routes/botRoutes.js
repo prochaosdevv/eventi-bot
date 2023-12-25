@@ -467,6 +467,7 @@ botRotues.get('/', async (req, res) => {
                 const page = 0;            
                 try {
                     console.log("here");
+                bot.deleteMessage(chatId,callbackQuery.message.message_id)
                    await showEvent(chatId , page ,false)
                 } catch (error) { 
                     console.error(`Error handling /listreminder for chatId ${chatId}: ${error.message}`);
