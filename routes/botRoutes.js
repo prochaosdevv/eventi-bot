@@ -1727,7 +1727,7 @@ async function showEvent(chatId , page ,update, callback_data = null, dateFilter
                 [
                     { text: '✏️Edit Event', callback_data: `/edit_${event._id}` },
                     { text: '❌Delete Event', callback_data: `/delete_${event._id}` }
-                ],                 ,
+                ],                 
                 [
                     { text: '⬅️ Go Home', callback_data: `/gotohome` },                    
                 ], 
