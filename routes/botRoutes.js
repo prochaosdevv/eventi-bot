@@ -943,6 +943,7 @@ function setRemindBefore(chatId, seconds) {
     // console.log(_parseContent.remindBefore);
     // console.log(seconds);
     _parseContent.remindBefore = _parseContent.remindBefore ? [seconds, ..._parseContent.remindBefore] : [seconds];
+   let  _currentField = _parseContent.currentField
     console.log(_parseContent.remindBefore);
     if(_parseContent.remindBefore.length >= 3){
         _parseContent.currentField =  nextField[_parseContent.currentField];
