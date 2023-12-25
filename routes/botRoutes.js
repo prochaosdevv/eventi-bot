@@ -401,7 +401,7 @@ botRotues.get('/', async (req, res) => {
     bot.on('callback_query', async function onCallbackQuery(callbackQuery) {
 
         const chatId = callbackQuery.message.chat.id;
-        let _time = parseInt(new Date().getTime()/1e3)
+        let _time = parseInt(new Date().getTime())
         // console.log(_time);
         // console.log(chatId + callbackQuery.message.message_id + _time);
         // console.log(uniqueid.includes(chatId + callbackQuery.message.message_id + _time));
