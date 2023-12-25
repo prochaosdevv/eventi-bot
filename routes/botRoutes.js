@@ -1005,7 +1005,9 @@ function setRemindBefore(chatId, seconds) {
         return;
     }
 
-    moveForward(chatId)
+    bot.sendMessage(chatId, nextMsg[_currentField], nextMmarkup[_currentField]);
+
+    // moveForward(chatId)
     // bot.sendMessage(chatId, nextMsg[_parseContent.currentField],nextMmarkup[_parseContent.currentField]); 
 }
 
