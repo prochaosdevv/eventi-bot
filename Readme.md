@@ -12,3 +12,6 @@ Please create .env file from .env.example before deploying on a server.
 You can also configure pm2 on your server to run the application as a processs. Read here (https://pm2.keymetrics.io/docs/usage/quick-start/)
 
 This application use MongoDB as DB engine.
+
+
+
