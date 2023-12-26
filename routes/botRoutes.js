@@ -2061,7 +2061,7 @@ async function editEvent(chatId, eventId,index) {
 
 
     const sendSubscriptionMenu = async (chatId) => {
-        let _text = `You're not subscribed yet. Please choose from subscription options below. \n\n\nPlease note Lifetime subscription includes all future utility releases as well` 
+        let _text = `You're not subscribed yet. Please choose from subscription options below.\n\n\n(Please note that Lifetime subscription includes full access to all future utility releases as well)` 
         const result = await SubscriptionModel.findOne({chatId: chatId});
         let reply_markup = {
             "inline_keyboard": [
@@ -2093,12 +2093,12 @@ async function editEvent(chatId, eventId,index) {
 
                     },
                 ],
-                [
-                    {
-                        text: "Get Whitlisted",
-                        callback_data: "/getwhitelisted",
-                    },                         
-                ],
+                // [
+                //     {
+                //         text: "Get Whitlisted",
+                //         callback_data: "/getwhitelisted",
+                //     },                         
+                // ],
                 [
                     {
                         text: "⬅️ Go Back",
