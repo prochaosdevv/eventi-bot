@@ -1,4 +1,4 @@
-### TG BOT for Event Rem
+### TG BOT for Event Reminder
 
 Please create .env file from .env.example before deploying on a server.
 
